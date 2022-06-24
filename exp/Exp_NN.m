@@ -119,7 +119,7 @@ x = x0;
 Ax = A*x;
 startTime = tic;
 calc_gap = true;
-tol = 1e-9; deltax = 1; deltax0 = 0;
+tol = 1e-9*(m/n); deltax = 1; deltax0 = 0;
 % for k = 1:nb_iter
 while deltax >= tol^2*deltax0 && k <= maxiter %Maximum number of iterations
     xprev = x;
@@ -147,7 +147,7 @@ xMM = x;
 x = x0;
 Ax = A*x;
 startTime = tic;
-tol = 1e-9; deltax = 1; deltax0 = 0;
+tol = 1e-9*(m/n); deltax = 1; deltax0 = 0;
 % for k = 1:nb_iter
 while deltax >= tol^2*deltax0 && k <= maxiter %Maximum number of iterations
     xprev = x;
@@ -310,6 +310,14 @@ if ~exist('omitResults','var')
     plot(outAS_screen.time_it(10:10:end),outAS_screen.nb_screen_it(10:10:end)/n,':'), 
     legendvec2{end+1} = 'Active Set + Screening';    
     end
+    
+    figure(2), subplot(2,1,1), grid on
+    ylabel('Duality gap'), xlabel('Time [s]'), grid on
+    legend(legendvec)
+    subplot(2,1,2), grid on
+%     xlim([0 outHALS.time_it(end)]), ylim([0 1])
+    ylabel('Screening ratio [\%]'), xlabel('Time [s]'), grid on
+    legend(legendvec2, 'Location', 'southeast') 
     
     savefig([filename '.fig'])
     
