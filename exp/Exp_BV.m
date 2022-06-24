@@ -5,7 +5,10 @@ if rng_seed, rng(rng_seed), fprintf('\n\n /!\\/!\\ RANDOM SEED ACTIVATED /!\\/!\
 %% User-defined parameters  
 % Choose dataset
 exp_type = 'synthetic'; % Options: 'synthetic', or some real dataset 
-                         % Hyperspectral : 'Cuprite_USGS-lib'
+                         % Hyperspectral : 
+                         %     'Urban', 'Urban_subsampled'
+                         %     'Cuprite', 'Cuprite_subsampled', 'Moffett', 'Madonna'
+                         %     'Cuprite_USGS-lib', 'Urban_USGS-lib' (using USGS spectral library as dictionary)
 
 % Dimensions (only for synthetic experiments, irrelevant otherwise)
 m = 2000;
@@ -40,6 +43,19 @@ if strcmp(exp_type,'synthetic')
     % Lower and Upper bounds (constraints): l <= x <= u 
     l = 0*ones(n,1);
     u = 1*ones(n,1);
+elseif strcmp(exp_type,'cond')
+    A = abs(randn(m,n)); A = A./sqrt(sum(A.^2)); % random A with unit-norm columns
+    [U, S, V] = svd(A,'econ');
+    cond_factor = 100; % try 10^-3, 10^-1, 1, 10, 1000
+    A = U*diag((diag(S)-S(end))*cond_factor + S(end))*V.';
+    A = A./sqrt(sum(A.^2));
+    y_orig = abs(randn(m,1)); y_orig = y_orig/norm(y_orig);
+%     x_golden = sprand(n,1,density_x); 
+%     y_orig = A*x_golden;
+%     y_orig = y_orig/norm(y_orig);
+    % Lower and Upper bounds (constraints): l <= x <= u 
+    l = 0*ones(n,1);
+    u = 1*ones(n,1);   
 else
     load_dataset
     % Synthetic y (combining columns of A)

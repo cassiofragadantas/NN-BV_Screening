@@ -82,20 +82,20 @@ dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );
 %Screening initialization
 screen_period = 10;
 normA = sqrt(sum(A.^2)).';
-sumA = sum(A,1);
+% sumA = sum(A,1);
 %
 % Choice of dual translation direction
-% z = ones(m,1); % -t vector on the paper
-% % 
-% % z = sum(A,2); z = z./norm(z); % Take the average of the columns
-% %
-% % z = ones(m,1); z(1:floor(m/1.04)) = 0.001; z = z/norm(z); %m/1.1 -> correl 0.3, 1.04 -> 0.2
-% %
-% fprintf('Correlation between chosen dual translation direction t and -1 vector: %.5f\n', z.'*ones(m,1)/(sqrt(m)*norm(z)))
-% sumA = (A.'*z).';
-% assert(all(sumA>0),'Vector z has to be positively correlated with all columns of A.')
-% tdual = z;
-% save tdual tdual
+z = ones(m,1); % -t vector on the paper
+% 
+% z = sum(A,2); z = z./norm(z); % Take the average of the columns
+%
+% z = ones(m,1); z(1:floor(m/1.04)) = 0.001; z = z/norm(z); %m/1.1 -> correl 0.3, 1.04 -> 0.2
+%
+fprintf('Correlation between chosen dual translation direction t and -1 vector: %.5f\n', z.'*ones(m,1)/(sqrt(m)*norm(z)))
+sumA = (A.'*z).';
+assert(all(sumA>0),'Vector z has to be positively correlated with all columns of A.')
+tdual = z;
+save tdual tdual
 
 % Storage variables
 cost = zeros(1,nb_iter); %save cost function evolution
@@ -119,7 +119,7 @@ x = x0;
 Ax = A*x;
 startTime = tic;
 calc_gap = true;
-tol = 1e-9*(m/n); deltax = 1; deltax0 = 0;
+tol = 1e-9; deltax = 1; deltax0 = 0;
 % for k = 1:nb_iter
 while deltax >= tol^2*deltax0 && k <= maxiter %Maximum number of iterations
     xprev = x;
@@ -147,7 +147,7 @@ xMM = x;
 x = x0;
 Ax = A*x;
 startTime = tic;
-tol = 1e-9*(m/n); deltax = 1; deltax0 = 0;
+tol = 1e-9; deltax = 1; deltax0 = 0;
 % for k = 1:nb_iter
 while deltax >= tol^2*deltax0 && k <= maxiter %Maximum number of iterations
     xprev = x;
@@ -231,18 +231,26 @@ tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
 tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y); timeAS_Screen = toc;
 % profile off, profsave(profile('info'),'./new_Profile_AS-Screen-NNLS')
 
+% profile on
+tic, [xAS_screen2,~,~,~,outAS_screen2,~] = lsqnonneg_Screen2(A,y); timeAS_Screen2 = toc;
+% profile off, profsave(profile('info'),'./new_Profile_AS-Screen2-NNLS')
+
 % Assert screening did not affect algorithm convergence point
 assert(norm(xAS - xAS_screen)/norm(xAS_screen)<1e-9, 'Error! Screening changed the Active Set solver result')
+assert(norm(xAS - xAS_screen2)/norm(xAS_screen2)<1e-9, 'Error! Screening changed the Active Set solver result')
 
 fprintf('Active Set algorithm : %.4s s\n', timeAS)
 fprintf('Active Set + Screening : %.4s s\n', timeAS_Screen)
+fprintf('Active Set + Screening 2: %.4s s\n', timeAS_Screen2)    
 fprintf('Active Set speedup : %.4s times \n', timeAS/timeAS_Screen) 
+fprintf('Active Set speedup 2: %.4s times \n', timeAS/timeAS_Screen2)  
 
 % Re-run to record duality gap at each iteration
 fprintf('\n... re-running solvers to compute duality gap offline ...\n')
 options.calc_gap = true;
 [~,~,~,~,outAStmp,~]  = lsqnonneg(A,y,options);
 [~,~,~,~,outAS_screentmp,~] = lsqnonneg_Screen(A,y,options);
+[~,~,~,~,outAS_screen2tmp,~] = lsqnonneg_Screen(A,y,options);
 
 time1e6 = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
 time1e6_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));

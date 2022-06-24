@@ -6,6 +6,10 @@ function [V, output] = nnlsHALSupdt(M,U,V,maxiter, calc_gap)
 %           min_{V >= 0} ||M-UV||_F^2 
 % 
 % with an exact block-coordinate descent scheme. 
+%
+% See N. Gillis and F. Glineur, Accelerated Multiplicative Updates and 
+% Hierarchical ALS Algorithms for Nonnegative Matrix Factorization, 
+% Neural Computation 24 (4): 1085-1105, 2012.
 % 
 %
 % ****** Input ******

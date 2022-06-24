@@ -20,6 +20,11 @@ function [V, output] = nnlsHALS_Screen(M,U,V,maxiter,calc_gap)
 %
 % ****** Output ******
 %   V  : an r-by-N nonnegative matrix \approx argmin_{V >= 0} ||M-UV||_F^2
+%
+%
+% [1] N. Gillis and F. Glineur, Accelerated Multiplicative Updates and 
+% Hierarchical ALS Algorithms for Nonnegative Matrix Factorization, 
+% Neural Computation 24 (4): 1085-1105, 2012.
 
 if nargin <= 3
     maxiter = 500;
