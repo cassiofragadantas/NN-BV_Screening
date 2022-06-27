@@ -30,7 +30,6 @@ end
 
 %% Initializations
 nb_iter = 1e7; %maximum number of iterations
-mu = 2/norm(A).^2; % fixed stepsize
 x0 = abs(randn(n,1)); %random initialization for solution vector x
 
 % Data generation (A, y)
@@ -81,6 +80,9 @@ else % no noise
     y = y_orig;
 end
 
+mu = 2/norm(A).^2; % fixed stepsize
+calc_gap = true;
+
 %% Find x such that y=Ax, given A and y
 % profile on
 
@@ -115,6 +117,7 @@ if ~exist('omitResults','var')
     set(0, 'DefaultLineLineWidth', 2);
         
     figure(1)
+    k = length(outPGD.timeIt);
     idx = round(linspace(1,k,min(1000,k))); % 1:k
     %%%% Duality gap vs. Time %%%       
     subplot(2,1,1)
@@ -130,7 +133,7 @@ if ~exist('omitResults','var')
     %%%% Screening ratio vs. Time %%%        
     subplot(2,1,2), hold on
     % Oracle
-    nb_saturated = sum(xPGD>=u0-eps) + sum(xPGD<=l0+eps);
+    nb_saturated = sum(xPGD>=u-eps) + sum(xPGD<=l+eps);
     plot([0 outPGD.timeIt(end)], repmat(nb_saturated/n,1,2),'--','color',0.5*[1 1 1])
     % Screening
     set(gca,'ColorOrderIndex',1)
