@@ -37,6 +37,8 @@ if screen_period % Safe screening activated
     n = length(x); u0 = u; l0=l;
 end
 
+step_strat = 'constant'; % 'constant' or 'Armijo' 
+
 % Output variables
 output.timeIt = zeros(1,maxiter);
 output.costIt = zeros(1,maxiter);
@@ -59,6 +61,11 @@ dual = @(yvec,b,Atb,lvec,uvec) 0.5*sum( yvec.^2 - (yvec - b).^2 ) - lvec.'*min(0
 % primal = @(a) sum(v .* log(y ./ (a+epsAx)),'omitnan') + sum(- y + a + epsAx); % 0*log0 = 0
 % dual = @(b, Atb) sum(y.*log(1+b),'omitnan') - sum(epsAx*b) - l.'*max(0,Atb) - u.'*min(0,Atb); % force 0*log(0) = 0 instead of NaN
 
+if ~strcmp(step_strat,'constant') % Armijo strategy
+    mu_tol = 1e-8*mu;
+    f = primal(y,A*x);
+end
+
 % Main loop
 while gap >= gap_tol && k <= maxiter
 % delta_tol = 1e-8; delta_x = 1; delta_x0 = 0;    
@@ -68,9 +75,35 @@ while gap >= gap_tol && k <= maxiter
     % -- Primal update --
     res = y - Ax;
     grad = -A.'*res;
-    x = x - mu*grad;
-    x(x<l) = l(x<l); x(x>u) = u(x>u); % projection step (saturate entries)
-    Ax = A*x;
+
+    if strcmp(step_strat,'constant')
+        x = x - mu*grad;
+        x(x<l) = l(x<l); x(x>u) = u(x>u); % projection step (saturate entries)
+        Ax = A*x;
+    else
+        %linesearch by armijo backtracking
+        mu_k = 4*mu;
+        xk = x - mu_k*grad;
+        xk(xk<l) = l(xk<l); x(xk>u) = u(xk>u); % projection step (saturate entries)
+        Axk = A*xk;
+        fk = primal(y,Axk);
+
+        while fk - f > 0.01*grad.'*(xk-x) && mu_k > mu_tol %0.5*mu_k
+            % backstep mu_k
+            mu_k = 0.5 * mu_k;
+
+            % evaluate function at new iterate
+            xk = x - mu_k*grad;
+            xk(xk<l) = l(xk<l); x(xk>u) = u(xk>u); % projection step (saturate entries)
+            Axk = A*xk;
+            fk = primal(y,Axk);
+        end
+        if mu_k < mu_tol, keyboard; end
+        f = fk;
+%         mu = mu_k; % Much faster! To check
+        x = xk;
+        Ax= Axk;
+    end
     
     if calc_gap
         % -- Dual update --
@@ -78,7 +111,8 @@ while gap >= gap_tol && k <= maxiter
         ATtheta = -grad;
 
         % -- Duality gap -- 
-        output.costIt(k) =  primal(y,Ax);
+        if strcmp(step_strat,'constant'), f = primal(y,Ax); end
+        output.costIt(k) =  f;
         gap = output.costIt(k) - dual(y,theta,ATtheta,l,u);
         gap(gap<=0) = eps;
         output.gapIt(k) = gap;    
