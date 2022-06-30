@@ -29,7 +29,7 @@ dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );
 theta =  res; % simply the (generalized) residual
 ATtheta = ATres;
 
-% -- Stopping criterion -- 
+% -- Duality gap --
 gap = primal(y- res) - dual(theta); % gap has to be calculated anyway for GAP_Safe
 gap(gap<=0) = eps;
 

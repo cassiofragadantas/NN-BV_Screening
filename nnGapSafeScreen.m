@@ -32,7 +32,7 @@ theta = res - epsilon*t;
 
 ATtheta = ATres - epsilon*sumA.'; %= A.'* theta; Should be zero at coordinates xj ~= 0 and negative otherwise
 
-% -- Stopping criterion -- 
+% -- Duality gap --
 gap = primal(y-res) - dual(theta); % gap has to be calculated anyway for GAP_Safe
 gap(gap<=0) = eps;
 
