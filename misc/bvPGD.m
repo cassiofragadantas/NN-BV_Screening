@@ -23,14 +23,14 @@ function [x, output] = bvPGD(y,A,l,u,x,mu,maxiter,calc_gap,screen_period)
 % Date: June 24th 2022
 
 % Default input variables
-if nargin < 4, error('bvPGD: Inputs {y, A, l, u} have to be provided'); end
+if nargin < 4, error('bvPGD: Inputs {y, A, l, u} are mandatory'); end
 if nargin < 5, x = zeros(size(A,2),1); end
 if nargin < 6, mu=2/norm(A).^2; end
 if nargin < 7, maxiter = 1e6; end
 if nargin < 8, calc_gap = false; end
 if nargin < 9, screen_period = 0; end
 
-if screen_period % Safe screening activated
+if screen_period % Safe screening activated: initializations
     calc_gap = true; % Gap has to be computed for screening
     normA = sqrt(sum(A.^2)).';
     saturated_coords = zeros(size(x)); % tracks the saturated coordinates
@@ -38,6 +38,7 @@ if screen_period % Safe screening activated
 end
 
 step_strat = 'constant'; % 'constant' or 'Armijo' 
+stop_crit = 'delta'; % 'gap' for duality gap criterion
 
 % Output variables
 output.timeIt = zeros(1,maxiter);
@@ -50,7 +51,9 @@ Ax = A*x;
 startTime = tic;
 k=1; 
 gap = inf;
-gap_tol = 1e-6;
+converged = false;  % Stopping criterion:
+gap_tol = 1e-6;     % used if (stop_crit == 'gap')
+delta_tol = 1e-19;  % used otherwise
 
 % Cost functions (primal and dual)
 % Euclidean distance
@@ -67,10 +70,9 @@ if ~strcmp(step_strat,'constant') % Armijo strategy
 end
 
 % Main loop
-while gap >= gap_tol && k <= maxiter
-% delta_tol = 1e-8; delta_x = 1; delta_x0 = 0;    
-% while delta_x >= delta_tol*delta_x0 && k <= maxiter
-%     xprev = x;
+while ~converged && k <= maxiter
+
+    xprev = x; % previous iterate
 
     % -- Primal update --
     res = y - Ax;
@@ -119,9 +121,13 @@ while gap >= gap_tol && k <= maxiter
     end
     
     % -- Stopping criterion --
-%     delta_x = norm(x-xprev)^2;
-%     if k == 1, delta_x0 = delta_x; end
-    
+    if strcmp(stop_crit,'gap') && calc_gap == 1 % duality gap
+        converged = (gap < gap_tol);
+    else % variation on the solution estimate
+        delta_x = norm(x-xprev)^2;
+        if k == 1, delta_x0 = delta_x; end
+        converged = (delta_x < delta_tol*delta_x0);
+    end
 
     % Screening
     if mod(k,screen_period) == 0
