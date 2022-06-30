@@ -94,8 +94,8 @@ fprintf('\n======= Coord. Descent algorithm =======\n')
 [xPGD_screen, outPGD_screen]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap,screen_period);
 
 % Assert screening did not affect algorithm convergence point
-assert(norm(xPGD - xPGD_screen)<=gap_tol*norm(xPGD_screen), ...
-       'Error! Screening changed the PG solver result')
+assert(norm(xPGD - xPGD_screen)<=1e-5*norm(xPGD_screen), ...
+       'Warning! Screening seems to have changed the PGD solver result')
 
 % profile off, profsave(profile('info'),'./new_Profile_PG_BVLS')
 
@@ -117,7 +117,7 @@ if ~exist('omitResults','var')
     set(0, 'DefaultLineLineWidth', 2);
         
     figure(1)
-    k = length(outPGD.timeIt);
+    k = min(length(outPGD.timeIt),length(outPGD_screen.timeIt));
     idx = round(linspace(1,k,min(1000,k))); % 1:k
     %%%% Duality gap vs. Time %%%       
     subplot(2,1,1)
