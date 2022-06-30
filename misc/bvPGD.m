@@ -40,6 +40,8 @@ end
 step_strat = 'constant'; % 'constant' or 'Armijo' 
 stop_crit = 'delta'; % 'gap' for duality gap criterion
 
+if strcmp(stop_crit,'gap'), calc_gap = true; end
+
 % Output variables
 output.timeIt = zeros(1,maxiter);
 output.costIt = zeros(1,maxiter);
@@ -107,6 +109,7 @@ while ~converged && k <= maxiter
         Ax= Axk;
     end
     
+    % -- Stopping criterion --
     if calc_gap
         % -- Dual update --
         theta =  res; % simply the (generalized) residual
@@ -120,8 +123,7 @@ while ~converged && k <= maxiter
         output.gapIt(k) = gap;    
     end
     
-    % -- Stopping criterion --
-    if strcmp(stop_crit,'gap') && calc_gap == 1 % duality gap
+    if strcmp(stop_crit,'gap') % duality gap
         converged = (gap < gap_tol);
     else % variation on the solution estimate
         delta_x = norm(x-xprev)^2;
@@ -129,7 +131,7 @@ while ~converged && k <= maxiter
         converged = (delta_x < delta_tol*delta_x0);
     end
 
-    % Screening
+    % -- Screening --
     if mod(k,screen_period) == 0
         radius = sqrt(2*gap);
         screen_vec_l = (ATtheta + radius*normA < 0);
@@ -152,7 +154,7 @@ end
 
 output.costIt = output.costIt(1:k-1);
 output.timeIt = output.timeIt(1:k-1);
-output.gapIt = output.gapIt(1:k-1);
+if calc_gap, output.gapIt = output.gapIt(1:k-1); end
 if screen_period, output.screenIt = output.screenIt(1:k-1); end
 
 % zero-padding solution
