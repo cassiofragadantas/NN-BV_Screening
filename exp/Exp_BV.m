@@ -16,9 +16,6 @@ n = 500;
 screen_period = 10;
 normalizeA = true;
 
-% Convergence tolerance
-gap_tol = 1e-6;
-
 % Noise (type and level)
 noise_type = 'none'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
 %Add noise
@@ -34,7 +31,8 @@ x0 = abs(randn(n,1)); %random initialization for solution vector x
 
 % Data generation (A, y)
 if strcmp(exp_type,'synthetic')
-    A = abs(randn(m,n)); A = A./sqrt(sum(A.^2)); % random A with unit-norm columns
+    A = abs(randn(m,n)); % gaussian random A
+    if normalizeA, A = A./sqrt(sum(A.^2)); end  % unit-norm columns
     % random y
     y_orig = randn(m,1);
     y_orig = y_orig/norm(y_orig);
@@ -46,11 +44,12 @@ if strcmp(exp_type,'synthetic')
     l = 0*ones(n,1);
     u = 1*ones(n,1);
 elseif strcmp(exp_type,'cond')
-    A = abs(randn(m,n)); A = A./sqrt(sum(A.^2)); % random A with unit-norm columns
+    A = abs(randn(m,n));
+    if normalizeA, A = A./sqrt(sum(A.^2)); end
     [U, S, V] = svd(A,'econ');
     cond_factor = 100; % try 10^-3, 10^-1, 1, 10, 1000
     A = U*diag((diag(S)-S(end))*cond_factor + S(end))*V.';
-    A = A./sqrt(sum(A.^2));
+    if normalizeA, A = A./sqrt(sum(A.^2)); end
     y_orig = abs(randn(m,1)); y_orig = y_orig/norm(y_orig);
 %     x_golden = sprand(n,1,density_x); 
 %     y_orig = A*x_golden;
