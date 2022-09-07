@@ -154,7 +154,8 @@ output.nb_screen_it = nZeros;
 if calc_gap, output.gap_it = nZeros; end
 
 % Screening initialization
-sumC = sum(C,1);
+assert(isfield(options,'tdual'),'tdual should be provided');
+sumC = options.tdual.'*C;
 normC = sqrt(sum(C.^2,1)).';
 screen_vec = false(n,1);
 screen_period = 10; % screening test performed every screen_period iterations
@@ -220,7 +221,7 @@ while any(Z) && any(w(Z) > tol)
    %% Safe screening
    if mod(outeriter,screen_period) == 0
        % Notation: d - C*X
-       [screen_new, trace] = nnGapSafeScreen(d, C, resid, w, normC, sumC);       
+       [screen_new, ~] = nnGapSafeScreen(d, C, resid, w, normC, sumC, options.tdual);
        
        C(:,screen_new) = [];
        sumC(screen_new) = [];
@@ -240,7 +241,7 @@ while any(Z) && any(w(Z) > tol)
    % Not executed normally! Compute gap for illustration-purpose only
    if calc_gap
       % Notation: d - C*X
-      [~, trace] = nnGapSafeScreen(d, C, resid, w, 1, sum(C,1));        
+      [~, trace] = nnGapSafeScreen(d, C, resid, w, normC, sumC, options.tdual);
       output.gap_it(outeriter) = trace.gap;
    end
 end

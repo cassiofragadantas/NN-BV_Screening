@@ -148,7 +148,12 @@ w = C'*resid;
 
 % Trace output variables
 output.time_it = nZeros;
-if calc_gap, output.gap_it = nZeros; end
+if calc_gap
+    assert(isfield(options,'tdual'),'tdual should be provided');
+    normC = sqrt(sum(C.^2));
+    sumC = options.tdual.'*C;
+    output.gap_it = nZeros; 
+end
 
 % Set up iteration criterion
 outeriter = 0;
@@ -212,7 +217,7 @@ while any(Z) && any(w(Z) > tol)
    % Not executed normally! Compute gap for illustration-purpose only
    if calc_gap
       % Notation: d - C*X
-      [~, trace] = nnGapSafeScreen(d, C, resid, w, 1, sum(C,1));        
+      [~, trace] = nnGapSafeScreen(d, C, resid, w, normC, sumC, options.tdual);
       output.gap_it(outeriter) = trace.gap;
    end
 end

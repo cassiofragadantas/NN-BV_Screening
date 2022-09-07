@@ -48,7 +48,7 @@ sumU = sum(U,1);
 normU = sqrt(diag(UtU));
 screen_vec = false(size(V));
 screen_period = 10; %Screening tests are performed every screen_period iterations
-if exist('./tdual.mat', 'file') == 2; load('./tdual.mat'); else, tdual=ones(size(M,1),1); end
+if exist('./tdual.mat', 'file') == 2; load('./tdual.mat','tdual'); else, tdual=ones(size(M,1),1); end
 if any(size(tdual) ~= [size(M,1), 1]), tdual=ones(size(M,1),1); end
 sumU = tdual.'*U;
 
@@ -103,7 +103,7 @@ while eps >= (delta)^2*eps0 && cnt <= maxiter %Maximum number of iterations
     % Not executed normally! Compute gap for illustration-purpose only
     if calc_gap
         % Notation: M - U*V
-        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, 1, sum(U,1)); % could reuse input parameters
+        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,tdual); % could reuse input parameters
         output.gap_it(cnt) = trace.gap;
     end
     

@@ -39,7 +39,13 @@ UtUV = UtU*V;
 
 % Trace output variables
 output.time_it = zeros(1,maxiter);
-if calc_gap, output.gap_it = zeros(1,maxiter); end
+if calc_gap
+    normU = sqrt(diag(UtU));
+    if exist('./tdual.mat', 'file') == 2; load('./tdual.mat','tdual'); else, tdual=ones(size(M,1),1); end
+    if any(size(tdual) ~= [size(M,1), 1]), tdual=ones(size(M,1),1); end
+    sumU = tdual.'*U;
+    output.gap_it = zeros(1,maxiter); 
+end
 
 if nargin <= 2 || isempty(V) 
 %     V = zeros(r,n); 
@@ -78,7 +84,7 @@ while eps >= (delta)^2*eps0 && cnt <= maxiter %Maximum number of iterations
     % Not executed normally! Compute gap for illustration-purpose only
     if calc_gap
         % Notation: M - U*V
-        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, 1, sum(U,1)); % could reuse input parameters
+        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,tdual); % could reuse input parameters
         output.gap_it(cnt) = trace.gap;
     end
     

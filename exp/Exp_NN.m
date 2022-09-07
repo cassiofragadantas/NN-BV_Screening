@@ -10,8 +10,8 @@ exp_type = 'synthetic'; % Options: 'synthetic', or some real dataset
                          %     'TasteProfile'
 
 % Dimensions (only for synthetic experiments, irrelevant otherwise)
-m = 2000; %2000
-n = 2000; %500, 1000, 2000, 5000
+m = 1000; %2000
+n = 1000; %500, 1000, 2000, 5000
 density_x = 0.05;
 nb_iter = 30000; %maximum number of iterations
 
@@ -227,12 +227,13 @@ fprintf('\n======= Active Set algorithm =======\n')
 tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
 % profile off, profsave(profile('info'),'./new_Profile_AS-NNLS')
 
+options.tdual = tdual;
 % profile on
-tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y); timeAS_Screen = toc;
+tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_Screen = toc;
 % profile off, profsave(profile('info'),'./new_Profile_AS-Screen-NNLS')
 
 % profile on
-tic, [xAS_screen2,~,~,~,outAS_screen2,~] = lsqnonneg_Screen2(A,y); timeAS_Screen2 = toc;
+tic, [xAS_screen2,~,~,~,outAS_screen2,~] = lsqnonneg_Screen2(A,y,options); timeAS_Screen2 = toc;
 % profile off, profsave(profile('info'),'./new_Profile_AS-Screen2-NNLS')
 
 % Assert screening did not affect algorithm convergence point
@@ -250,7 +251,6 @@ fprintf('\n... re-running solvers to compute duality gap offline ...\n')
 options.calc_gap = true;
 [~,~,~,~,outAStmp,~]  = lsqnonneg(A,y,options);
 [~,~,~,~,outAS_screentmp,~] = lsqnonneg_Screen(A,y,options);
-[~,~,~,~,outAS_screen2tmp,~] = lsqnonneg_Screen(A,y,options);
 
 time1e6 = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
 time1e6_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
