@@ -1,6 +1,6 @@
-addpath ../misc/ ../datasets ../
+addpath ../misc/ ../datasets ../utils ../
 rng_seed = 10; % 0 for no seed
-if rng_seed, rng(rng_seed), fprintf('\n\n /!\\/!\\ RANDOM SEED ACTIVATED /!\\/!\\\n\n'); end
+if rng_seed, rng(rng_seed); end
 
 %% User-defined parameters  
 % Choose dataset
@@ -20,99 +20,40 @@ MM = false; CoD = true; ActiveSet = true;
 
 % Noise (type and level)
 noise_type = 'gaussian_snr'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
+noise_val = 10; % snr or noise standard deviation
 
-if strcmp(noise_type,'gaussian_std')
-    sigma = 0.1; %noise standard deviation
-elseif strcmp(noise_type,'gaussian_snr')
-    snr_db = 10;
-end
-                         
+% Generate data
+[A,y,options.tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
 
 %% Initializations
-normalizeA = true;
-if strcmp(exp_type,'synthetic')
-    A = abs(randn(m,n)); A = A./sqrt(sum(A.^2)); % random A with unit-norm columns
-%     y_orig = abs(randn(m,1));
-    x_golden = sprand(n,1,density_x); 
-    y_orig = A*x_golden;
-    y_orig = y_orig/norm(y_orig);
-elseif strcmp(exp_type,'cond')
-        A = abs(randn(m,n)); A = A./sqrt(sum(A.^2)); % random A with unit-norm columns
-        [U, S, V] = svd(A,'econ');
-        cond_factor = 1000; % try 10^-3, 10^-1, 1, 10, 1000
-        A = U*diag((diag(S)-S(end))*cond_factor + S(end))*V.';
-        A = A./sqrt(sum(A.^2));
-%     y_orig = abs(randn(m,1));
-    x_golden = sprand(n,1,density_x); 
-    y_orig = A*x_golden;
-    y_orig = y_orig/norm(y_orig);    
-elseif strcmp(exp_type,'conv')
-    sigma = 20; % filter size ~6 * sigmma + 1
-    if n ~= m, disp('Matrix A should be square, setting n = m.'); n=m; end
-    h = fspecial('gaussian',[1,2*ceil(3*sigma)+1],sigma); % 1D filter
-    halfh = (length(h)-1)/2;
-    A = toeplitz([h zeros(1,n-halfh-1)], [h(1) zeros(1,n+halfh-1)]);
-    A = A(halfh+1:end,1:end-halfh);
-    
-    x_golden = sprand(n,1,density_x);
-    y_orig = A*x_golden;
-else
-    load_dataset
-%     if normalizeA, y_orig = y_orig/norm(y_orig); end
-end
 
-%Add noise
-if strcmp(noise_type,'poisson')
-    y = poissrnd(full(y_orig));
-elseif strcmp(noise_type,'gaussian_std') % gaussian with std
-    y = y_orig + sigma*randn(size(y_orig));
-elseif strcmp(noise_type,'gaussian_snr') % gaussin with snr
-    y = y_orig + (10^(-snr_db/20)*norm(y_orig)/sqrt(m))*randn(m,1);
-else % no noise
-    y = y_orig;
-end
-y = max(y,0);
-% assert(all(y>=0),'Input signal should only have positive entries.')
-
-% primal and dual cost functions
-%Euclidean distance
+% Primal and dual cost functions
+% Euclidean distance
 primal = @(a) 0.5*sum( (y - a).^2 );
 dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );    
 
-%Screening initialization
+% Screening initialization
 screen_period = 10;
 normA = sqrt(sum(A.^2)).';
-% sumA = sum(A,1);
-%
-% Choice of dual translation direction
-z = ones(m,1); % -t vector on the paper
-% 
-% z = sum(A,2); z = z./norm(z); % Take the average of the columns
-%
-% z = ones(m,1); z(1:floor(m/1.04)) = 0.001; z = z/norm(z); %m/1.1 -> correl 0.3, 1.04 -> 0.2
-%
-fprintf('Correlation between chosen dual translation direction t and -1 vector: %.5f\n', z.'*ones(m,1)/(sqrt(m)*norm(z)))
-sumA = (A.'*z).';
-assert(all(sumA>0),'Vector z has to be positively correlated with all columns of A.')
-options.tdual = z;
+sumA = (A.'*options.tdual).';
 
 % Storage variables
-cost = zeros(1,nb_iter); %save cost function evolution
-dualgap = zeros(1,nb_iter); %save cost function evolution
-timeIt = zeros(1,nb_iter); %save total time at each iteration
-costScreen = zeros(1,nb_iter); %save cost function evolution
-dualgapScreen = zeros(1,nb_iter); %save cost function evolution
-timeItScreen = zeros(1,nb_iter); %save total time at each iteration
-screen_ratio = zeros(1,nb_iter); %save screening ratio evolution
+cost = zeros(1,nb_iter);            %save cost function evolution
+dualgap = zeros(1,nb_iter);         %save duality gap evolution
+timeIt = zeros(1,nb_iter);          %save total time at each iteration
+costScreen = zeros(1,nb_iter);      %save cost function evolution
+dualgapScreen = zeros(1,nb_iter);   %save duality evolution
+timeItScreen = zeros(1,nb_iter);    %save total time at each iteration
+screen_ratio = zeros(1,nb_iter);    %save screening ratio evolution
 rejected_coords = zeros(1,n);
 
 %% Find x such that y=Ax, given A and y
-A0=A;
-x0 = abs(randn(n,1)); %random initialization
-x0 = zeros(n,1);
+A0=A; 
+x0 = zeros(n,1); % abs(randn(n,1));
 %%%%%%%%%%%% MM algorithm %%%%%%%%%%%%
 if MM
 fprintf('\n======= Majorization-Minimization algorithm =======\n')
+assert(all([x0>0; y>0; A(:)>0]),'MM solver: all variables (A,y,x0) should be positive')
 % No screening
 x = x0;
 Ax = A*x;
@@ -346,3 +287,5 @@ if ~exist('omitResults','var')
     legend({'Screened (%)' 'Oracle (%)'}, 'Location', 'southeast')
     end    
 end
+
+
