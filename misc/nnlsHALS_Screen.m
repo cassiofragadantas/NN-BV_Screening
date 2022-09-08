@@ -1,4 +1,4 @@
-function [V, output] = nnlsHALS_Screen(M,U,V,maxiter,calc_gap)
+function [V, output] = nnlsHALS_Screen(M,U,V,maxiter,options)
 
 % Computes an approximate solution of the following nonnegative least 
 % squares problem (NNLS)  
@@ -26,12 +26,21 @@ function [V, output] = nnlsHALS_Screen(M,U,V,maxiter,calc_gap)
 % Hierarchical ALS Algorithms for Nonnegative Matrix Factorization, 
 % Neural Computation 24 (4): 1085-1105, 2012.
 
-if nargin <= 3
-    maxiter = 500;
+if nargin <= 2 || isempty(V) 
+    V = U\M; % Least Squares
+    V = max(V,0); 
+    alpha = sum(sum( (U'*M).*V ))./sum(sum( (U'*U).*(V*V'))); 
+    V = alpha*V; 
 end
-if nargin <= 4
+if nargin <= 3, maxiter = 500; end
+if nargin <= 4, options = []; end
+
+if isfield(options,'calc_gap')
+    calc_gap = options.calc_gap;
+else
     calc_gap = false;
 end
+
 %[m, N] = size(M); 
 [m,n] = size(U); 
 UtU = U'*U; % n x n
@@ -44,24 +53,14 @@ output.nb_screen_it = zeros(1,maxiter);
 if calc_gap, output.gap_it = zeros(1,maxiter); end
 
 % Screening initialization
-sumU = sum(U,1);
+assert(isfield(options,'tdual'),'tdual should be provided');
+tdual = options.tdual;
 normU = sqrt(diag(UtU));
+sumU = tdual.'*U;
 screen_vec = false(size(V));
 screen_period = 10; %Screening tests are performed every screen_period iterations
-if exist('./tdual.mat', 'file') == 2; load('./tdual.mat','tdual'); else, tdual=ones(size(M,1),1); end
-if any(size(tdual) ~= [size(M,1), 1]), tdual=ones(size(M,1),1); end
-sumU = tdual.'*U;
 
-if nargin <= 3
-    maxiter = 500;
-end
 
-if nargin <= 2 || isempty(V) 
-    V = U\M; % Least Squares
-    V = max(V,0); 
-    alpha = sum(sum( (U'*M).*V ))./sum(sum( (U'*U).*(V*V'))); 
-    V = alpha*V; 
-end
 
 delta = 1e-9; % Stopping condition depending on evolution of the iterate V: 
               % Stop if ||V^{k}-V^{k+1}||_F <= delta * ||V^{0}-V^{1}||_F 

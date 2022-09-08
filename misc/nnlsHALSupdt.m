@@ -1,4 +1,4 @@
-function [V, output] = nnlsHALSupdt(M,U,V,maxiter, calc_gap)
+function [V, output] = nnlsHALSupdt(M,U,V,maxiter, options)
 
 % Computes an approximate solution of the following nonnegative least 
 % squares problem (NNLS)  
@@ -25,28 +25,6 @@ function [V, output] = nnlsHALSupdt(M,U,V,maxiter, calc_gap)
 % ****** Output ******
 %   V  : an r-by-n nonnegative matrix \approx argmin_{V >= 0} ||M-UV||_F^2
 
-if nargin <= 3
-    maxiter = 500;
-end
-if nargin <= 4
-    calc_gap = false;
-end
-[m,n] = size(M); 
-[m,r] = size(U); 
-UtU = U'*U; 
-UtM = U'*M;
-UtUV = UtU*V;
-
-% Trace output variables
-output.time_it = zeros(1,maxiter);
-if calc_gap
-    normU = sqrt(diag(UtU));
-    if exist('./tdual.mat', 'file') == 2; load('./tdual.mat','tdual'); else, tdual=ones(size(M,1),1); end
-    if any(size(tdual) ~= [size(M,1), 1]), tdual=ones(size(M,1),1); end
-    sumU = tdual.'*U;
-    output.gap_it = zeros(1,maxiter); 
-end
-
 if nargin <= 2 || isempty(V) 
 %     V = zeros(r,n); 
 %     for i = 1 : n
@@ -59,6 +37,29 @@ if nargin <= 2 || isempty(V)
     V = max(V,0); 
     alpha = sum(sum( (U'*M).*V ))./sum(sum( (U'*U).*(V*V'))); 
     V = alpha*V; 
+end
+if nargin <= 3, maxiter = 500; end
+if nargin <= 4, options = []; end
+
+if isfield(options,'calc_gap')
+    calc_gap = options.calc_gap;
+else
+    calc_gap = false;
+end
+
+[m,n] = size(M); 
+[m,r] = size(U); 
+UtU = U'*U; 
+UtM = U'*M;
+UtUV = UtU*V;
+
+% Trace output variables
+output.time_it = zeros(1,maxiter);
+if calc_gap
+    assert(isfield(options,'tdual'),'tdual should be provided');
+    normU = sqrt(diag(UtU));
+    sumU = options.tdual.'*U;
+    output.gap_it = zeros(1,maxiter); 
 end
 
 delta = 1e-9; % Stopping condition depending on evolution of the iterate V: 
@@ -84,7 +85,7 @@ while eps >= (delta)^2*eps0 && cnt <= maxiter %Maximum number of iterations
     % Not executed normally! Compute gap for illustration-purpose only
     if calc_gap
         % Notation: M - U*V
-        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,tdual); % could reuse input parameters
+        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,options.tdual); % could reuse input parameters
         output.gap_it(cnt) = trace.gap;
     end
     

@@ -94,8 +94,7 @@ z = ones(m,1); % -t vector on the paper
 fprintf('Correlation between chosen dual translation direction t and -1 vector: %.5f\n', z.'*ones(m,1)/(sqrt(m)*norm(z)))
 sumA = (A.'*z).';
 assert(all(sumA>0),'Vector z has to be positively correlated with all columns of A.')
-tdual = z;
-save tdual tdual
+options.tdual = z;
 
 % Storage variables
 cost = zeros(1,nb_iter); %save cost function evolution
@@ -199,7 +198,7 @@ if CoD
 fprintf('\n======= Coord. Descent algorithm =======\n')
 tic, [xHALS, outHALS]= nnlsHALSupdt(y,A,x0,nb_iter); timeHALS = toc;
 
-tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter); timeHALS_Screen = toc;
+tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter,options); timeHALS_Screen = toc;
 
 % Assert screening did not affect algorithm convergence point
 assert(norm(xHALS - xHALS_screen)/norm(xHALS_screen)<1e-9, 'Error! Screening changed the CoD solver result')
@@ -210,8 +209,10 @@ fprintf('CoD speedup : %.4s times \n', timeHALS/timeHALS_Screen)
 
 % Re-run to record duality gap at each iteration
 fprintf('\n... re-running solvers to compute duality gap offline ...\n')
-[~, outHALStmp]= nnlsHALSupdt(y,A,x0,nb_iter,true);
-[~, outHALS_screentmp] = nnlsHALS_Screen(y,A,x0,nb_iter,true);
+options.calc_gap = true;
+[~, outHALStmp]= nnlsHALSupdt(y,A,x0,nb_iter,options);
+[~, outHALS_screentmp] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
+options.calc_gap = false;
 
 time1e6 = outHALS.time_it(find(outHALStmp.gap_it<1e-6,1));
 time1e6_screen = outHALS_screen.time_it(find(outHALS_screentmp.gap_it<1e-6,1));
@@ -227,7 +228,6 @@ fprintf('\n======= Active Set algorithm =======\n')
 tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
 % profile off, profsave(profile('info'),'./new_Profile_AS-NNLS')
 
-options.tdual = tdual;
 % profile on
 tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_Screen = toc;
 % profile off, profsave(profile('info'),'./new_Profile_AS-Screen-NNLS')
@@ -251,6 +251,7 @@ fprintf('\n... re-running solvers to compute duality gap offline ...\n')
 options.calc_gap = true;
 [~,~,~,~,outAStmp,~]  = lsqnonneg(A,y,options);
 [~,~,~,~,outAS_screentmp,~] = lsqnonneg_Screen(A,y,options);
+options.calc_gap = false;
 
 time1e6 = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
 time1e6_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
