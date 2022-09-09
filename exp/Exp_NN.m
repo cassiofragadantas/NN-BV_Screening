@@ -37,74 +37,74 @@ dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );
 %% Find x such that y=Ax, given A and y
 %%%%%%%%%%%% MM algorithm %%%%%%%%%%%%
 if MM
-fprintf('\n======= Majorization-Minimization algorithm =======\n')
-% Run solvers
-tic, [xMM, outMM]= nnMM(y,A,x0,nb_iter); timeMM = toc;
-tic, [xMM_screen, outMM_screen] = nnMM(y,A,x0,nb_iter,false,screen_period,options.tdual); timeMM_Screen = toc;
-
-% Assert screening did not affect algorithm convergence point
-assert(norm(xMM - xMM_screen)/norm(xMM_screen)<1e-9, 'Error! Screening changed the MM solver result')
-
-print_time('MM',timeMM,timeMM_Screen, false)
-
-% Re-run to record duality gap at each iteration
-fprintf('\n... re-running solvers to compute duality gap offline ...\n')
-[~, outMMtmp]= nnMM(y,A,x0,nb_iter,true,0,options.tdual);
-[~, outMM_screentmp] = nnMM(y,A,x0,nb_iter,true,screen_period,options.tdual);
-
-time1e6 = outMM.time_it(find(outMMtmp.gap_it<1e-6,1));
-time1e6_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
-print_time('MM',time1e6,time1e6_screen, true)
+    fprintf('\n======= Majorization-Minimization algorithm =======\n')
+    % Run solvers
+    tic, [xMM, outMM]= nnMM(y,A,x0,nb_iter); timeMM = toc;
+    tic, [xMM_screen, outMM_screen] = nnMM(y,A,x0,nb_iter,false,screen_period,options.tdual); timeMM_Screen = toc;
+    
+    % Assert screening did not affect algorithm convergence point
+    assert(norm(xMM - xMM_screen)/norm(xMM_screen)<1e-9, 'Error! Screening changed the MM solver result')
+    
+    print_time('MM',timeMM,timeMM_Screen, false)
+    
+    % Re-run to record duality gap at each iteration
+    fprintf('\n... re-running solvers to compute duality gap offline ...\n')
+    [~, outMMtmp]= nnMM(y,A,x0,nb_iter,true,0,options.tdual);
+    [~, outMM_screentmp] = nnMM(y,A,x0,nb_iter,true,screen_period,options.tdual);
+    
+    time1e6 = outMM.time_it(find(outMMtmp.gap_it<1e-6,1));
+    time1e6_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
+    print_time('MM',time1e6,time1e6_screen, true)
 end
 
 %%%%%%%%%%%% CoD algorithm %%%%%%%%%%%%
 if CoD
-fprintf('\n======= Coord. Descent algorithm =======\n')
-% Run solvers
-tic, [xHALS, outHALS]= nnlsHALSupdt(y,A,x0,nb_iter); timeHALS = toc;
-tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter,options); timeHALS_Screen = toc;
-
-% Assert screening did not affect algorithm convergence point
-assert(norm(xHALS - xHALS_screen)/norm(xHALS_screen)<1e-9, 'Error! Screening changed the CoD solver result')
-
-print_time('CoD',timeHALS,timeHALS_Screen, false)  
-
-% Re-run to record duality gap at each iteration
-fprintf('\n... re-running solvers to compute duality gap offline ...\n')
-options.calc_gap = true;
-[~, outHALStmp]= nnlsHALSupdt(y,A,x0,nb_iter,options);
-[~, outHALS_screentmp] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
-options.calc_gap = false;
-
-time1e6 = outHALS.time_it(find(outHALStmp.gap_it<1e-6,1));
-time1e6_screen = outHALS_screen.time_it(find(outHALS_screentmp.gap_it<1e-6,1));
-print_time('CoD',time1e6,time1e6_screen, true)
+    fprintf('\n======= Coord. Descent algorithm =======\n')
+    % Run solvers
+    tic, [xHALS, outHALS]= nnlsHALSupdt(y,A,x0,nb_iter); timeHALS = toc;
+    tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter,options); timeHALS_Screen = toc;
+    
+    % Assert screening did not affect algorithm convergence point
+    assert(norm(xHALS - xHALS_screen)/norm(xHALS_screen)<1e-9, 'Error! Screening changed the CoD solver result')
+    
+    print_time('CoD',timeHALS,timeHALS_Screen, false)  
+    
+    % Re-run to record duality gap at each iteration
+    fprintf('\n... re-running solvers to compute duality gap offline ...\n')
+    options.calc_gap = true;
+    [~, outHALStmp]= nnlsHALSupdt(y,A,x0,nb_iter,options);
+    [~, outHALS_screentmp] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
+    options.calc_gap = false;
+    
+    time1e6 = outHALS.time_it(find(outHALStmp.gap_it<1e-6,1));
+    time1e6_screen = outHALS_screen.time_it(find(outHALS_screentmp.gap_it<1e-6,1));
+    print_time('CoD',time1e6,time1e6_screen, true)
 end
 
 %%%%%%%%%%%% Active Set algorithm %%%%%%%%%%%%
 if ActiveSet
-fprintf('\n======= Active Set algorithm =======\n')
-% Run solvers
-tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
-% profile on
-tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_Screen = toc;
-% profile off, profsave(profile('info'),'./new_Profile_AS-Screen-NNLS')
-
-% Assert screening did not affect algorithm convergence point
-assert(norm(xAS - xAS_screen)/norm(xAS_screen)<1e-9, 'Error! Screening changed the Active Set solver result')
-
-print_time('Active Set',timeHALS,timeHALS_Screen, false)  
-
-% Re-run to record duality gap at each iteration
-fprintf('\n... re-running solvers to compute duality gap offline ...\n')
-options.calc_gap = true;
-[~,~,~,~,outAStmp,~]  = lsqnonneg(A,y,options);
-[~,~,~,~,outAS_screentmp,~] = lsqnonneg_Screen(A,y,options);
-options.calc_gap = false;
-
-time1e6 = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
-time1e6_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
-print_time('Active Set',time1e6,time1e6_screen, true)
+    fprintf('\n======= Active Set algorithm =======\n')
+    % Run solvers
+    tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
+    % profile on
+    tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_Screen = toc;
+    % profile off, profsave(profile('info'),'./new_Profile_AS-Screen-NNLS')
+    
+    % Assert screening did not affect algorithm convergence point
+    assert(norm(xAS - xAS_screen)/norm(xAS_screen)<1e-9, 'Error! Screening changed the Active Set solver result')
+    
+    print_time('Active Set',timeHALS,timeHALS_Screen, false)  
+    
+    % Re-run to record duality gap at each iteration
+    fprintf('\n... re-running solvers to compute duality gap offline ...\n')
+    options.calc_gap = true;
+    [~,~,~,~,outAStmp,~]  = lsqnonneg(A,y,options);
+    [~,~,~,~,outAS_screentmp,~] = lsqnonneg_Screen(A,y,options);
+    options.calc_gap = false;
+    
+    time1e6 = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
+    time1e6_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
+    print_time('Active Set',time1e6,time1e6_screen, true)
 end
 
 %% Results
