@@ -1,4 +1,4 @@
-function [A,y,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,normalizeA)
+function [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,normalizeA)
     % Default input values
     if nargin < 2, error('Please provide at least problem dimensions (n,m)'); end    
     if nargin < 3, density_x = 0.05; end
@@ -15,19 +15,19 @@ function [A,y,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,norma
 
     % Generate A
     switch exp_type
-        case 'case1' 
+        case {'tall', 'case1'} 
             % Tall A (m>=n) with random unit-norm columns
-            if n >= m, disp('Matrix A should be tall, setting n = m/2.'); n=floor(m/2); end
+            if n > m, warning('Matrix A should be tall, setting n = m/2.'); n=floor(m/2); end
             A = randn(m,n); 
-        case 'case2' 
+        case {'orthogonal', 'case 2'} 
             % Random orthogonal (square) A
-            if n ~= m, disp('Matrix A should be square, setting n = m.'); n=m; end
+            if n ~= m, warning('Matrix A should be square, setting n = m.'); n=m; end
             A = randn(m,n); A = orth(A);
-        case {'case3','synthetic'} 
+        case {'non-negative', 'case3', 'synthetic'} 
             % Non-negative A with random unit-norm columns
             A = abs(randn(m,n));             
-        case 'case4' 
-            % At least one columns is positively correlated to all others
+        case {'columnCorr', 'case4'} 
+            % One (the first) column is positively correlated to all others
             % Create a big number of columns and keep only the ones that 
             % are positively correlated to the first column
             A = randn(m,1);
@@ -40,7 +40,7 @@ function [A,y,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,norma
         case 'conv' 
             % Convolution matrix
             len = 20; % filter size ~6*len + 1
-            if n ~= m, disp('Matrix A should be square, setting n = m.'); n=m; end
+            if n ~= m, warning('Matrix A should be square, setting n = m.'); n=m; end
             normalizeA = false;  % normalizeA is forced to false
             h = fspecial('gaussian',[1,2*ceil(3*len)+1],len); % 1D filter
             halfh = (length(h)-1)/2;
@@ -77,14 +77,14 @@ function [A,y,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,norma
     
     % Choice of dual translation direction (-t vector on the paper)
     switch exp_type
-        case 'case1'
+        case {'tall', 'case1'}
             % Solution of the system A.'*z=b for any positive b
             b = abs(randn(n,1));
             z = A.'\b;
-        case 'case2'
+        case {'orthogonal', 'case2'}
             % Arbitrary linear combination of the columns of A
             z = A * rand(n,1);
-        case 'case4'
+        case {'columnCorr', 'case4'}
             z = A(:,1);
         otherwise % Non-negative A
             assert(all(A(:)>=0),'Dual direction not implemented for this type of matrix A.')

@@ -19,20 +19,19 @@ screen_period = 10;
 % Solver selection (set to false to skip) 
 MM = false; CoD = true; ActiveSet = true;
 
-% Solvers initialization
-x0 = ones(n,1); % abs(randn(n,1));
-
 % Noise (type and level)
 noise_type = 'gaussian_snr'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
 noise_val = 10; % snr or noise standard deviation
 
 % Generate data
-[A,y,options.tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
+[A,y,n,options.tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
 
 % Primal and dual cost functions: Euclidean distance
 primal = @(a) 0.5*sum( (y - a).^2 );
 dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );
 
+% Solvers initialization
+x0 = ones(n,1); % abs(randn(n,1));
 
 %% Find x such that y=Ax, given A and y
 %%%%%%%%%%%% MM algorithm %%%%%%%%%%%%
@@ -93,7 +92,7 @@ if ActiveSet
     % Assert screening did not affect algorithm convergence point
     assert(norm(xAS - xAS_screen)/norm(xAS_screen)<1e-9, 'Error! Screening changed the Active Set solver result')
     
-    print_time('Active Set',timeHALS,timeHALS_Screen, false)  
+    print_time('Active Set',timeAS,timeAS_Screen, false)  
     
     % Re-run to record duality gap at each iteration
     fprintf('\n... re-running solvers to compute duality gap offline ...\n')
