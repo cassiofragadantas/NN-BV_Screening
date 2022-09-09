@@ -36,7 +36,22 @@ function [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,nor
                 correl = A(:,1).'*newCols;
                 A = [A newCols(:,correl>0)];
             end
-            A = A(:,1:n);            
+            A = A(:,1:n); 
+        case 'cone' 
+            % Columns drawn on a cone around a given axis
+
+            % Cone axis:
+            % 1) All-ones vector
+            ax = normc(ones(m,1));
+            % 2) Something around the all-ones vector
+            % r = 16/sqrt(m); %1 -> correl= 0.707, 0.5 -> 0.89 % OK until 15/sqrt(m)
+            % ax = GenerateWithinCone(ones(m,1),r,1000,true); % 
+            % correl = mean(ax.'*ones(m,1)/sqrt(m)) %, plot(sum(ax<0))
+            % ax = ax(:,find(sum(ax<0)==0,1)); % find a ax such that sum(ax<0). Virtually impossible for r >> 1/sqrt(m)
+        
+            r = 3.1;  % n2000m1000: r=1-> correlAmin=0.707, 1.7 -> 0.5, 3.1 -> 0.3, 4.9 -> 0.2, 10 -> 0.1
+            A = GenerateWithinCone(ax,r,n,false); 
+            % correlAmin = min(A.'*ax) % print minimum correlation among all columns
         case 'conv' 
             % Convolution matrix
             len = 20; % filter size ~6*len + 1
@@ -86,6 +101,9 @@ function [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,nor
             z = A * rand(n,1);
         case {'columnCorr', 'case4'}
             z = A(:,1);
+        case 'cone'
+            % Dual direction is simply the cone axis
+            z = ax;
         otherwise % Non-negative A
             assert(all(A(:)>=0),'Dual direction not implemented for this type of matrix A.')
             z = ones(m,1);
@@ -93,9 +111,10 @@ function [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,nor
             % Other possibilities:
             % Average of the columns
 %             z = sum(A,2); z = z./norm(z);
-            % Controlled correlation w.r.t. all-ones vector
+            % Controlled correlation w.r.t. all-ones vector.
+            % Degenerate with close-to-zero entries
 %             z = ones(m,1); z(1:floor(m/1.04)) = 0.001; z = z/norm(z); % m/1.1 -> correl 0.3, 1.04 -> 0.2
-%             %z.'*ones(m,1)/(sqrt(m)*norm(z)) %Print correlation
+%             %correl = z.'*ones(m,1)/(sqrt(m)*norm(z)) %Print correlation
     end
     tdual = z./norm(z);
     assert(all(A.'*tdual>0),'Vector tdual has to be positively correlated with all columns of A.');
