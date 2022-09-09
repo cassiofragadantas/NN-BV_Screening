@@ -101,19 +101,12 @@ tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
 tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_Screen = toc;
 % profile off, profsave(profile('info'),'./new_Profile_AS-Screen-NNLS')
 
-% profile on
-tic, [xAS_screen2,~,~,~,outAS_screen2,~] = lsqnonneg_Screen2(A,y,options); timeAS_Screen2 = toc;
-% profile off, profsave(profile('info'),'./new_Profile_AS-Screen2-NNLS')
-
 % Assert screening did not affect algorithm convergence point
 assert(norm(xAS - xAS_screen)/norm(xAS_screen)<1e-9, 'Error! Screening changed the Active Set solver result')
-assert(norm(xAS - xAS_screen2)/norm(xAS_screen2)<1e-9, 'Error! Screening changed the Active Set solver result')
 
 fprintf('Active Set algorithm : %.4s s\n', timeAS)
 fprintf('Active Set + Screening : %.4s s\n', timeAS_Screen)
-fprintf('Active Set + Screening 2: %.4s s\n', timeAS_Screen2)    
 fprintf('Active Set speedup : %.4s times \n', timeAS/timeAS_Screen) 
-fprintf('Active Set speedup 2: %.4s times \n', timeAS/timeAS_Screen2)  
 
 % Re-run to record duality gap at each iteration
 fprintf('\n... re-running solvers to compute duality gap offline ...\n')
