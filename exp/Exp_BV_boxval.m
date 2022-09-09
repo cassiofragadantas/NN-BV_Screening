@@ -1,4 +1,4 @@
-addpath ../../misc/
+addpath ../ ../solvers/ ../utils/
 rng_seed = 10; % 0 for no seed
 if rng_seed, rng(rng_seed), fprintf('\n\n /!\\/!\\ RANDOM SEED ACTIVATED /!\\/!\\\n\n'); end
 

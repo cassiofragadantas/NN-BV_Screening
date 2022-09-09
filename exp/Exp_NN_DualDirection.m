@@ -1,7 +1,7 @@
 % Conclusion: we see a big impact on the choice of t only on the NIPSpapers
 % data, not in the synthetic ones. The ad-hoc method of introducing small
 % entries on t allows to get less correlated vectors than the cone method.
-addpath ../misc/ ../datasets ../
+addpath ../solvers/ ../datasets ../utils/ ../
 rng_seed = 10; % 0 for no seed
 if rng_seed, rng(rng_seed), fprintf('\n\n /!\\/!\\ RANDOM SEED ACTIVATED /!\\/!\\\n\n'); end
 

@@ -1,4 +1,4 @@
-addpath ../misc/ ../datasets ../
+addpath ../solvers/ ../datasets ../utils/ ../
 rng_seed = 100; % 0 for no seed
 if rng_seed, rng(rng_seed), fprintf('\n\n /!\\/!\\ RANDOM SEED ACTIVATED /!\\/!\\\n\n'); end
 

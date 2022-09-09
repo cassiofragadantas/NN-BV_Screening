@@ -1,4 +1,4 @@
-addpath ../misc/ ../datasets ../utils ../
+addpath ../solvers/ ../datasets ../utils ../
 rng_seed = 10; % 0 for no seed
 if rng_seed, rng(rng_seed); end
 
