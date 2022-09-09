@@ -7,7 +7,7 @@ if nargin < 4, maxiter = 1e5; end
 if nargin < 5, calc_gap = false; end
 if nargin < 6, screen_period = 0; end
 if nargin < 7, tdual=ones(size(y)); end
-assert(all([x>0; y>0; A(:)>0]),'MM solver: all variables (A,y,x0) should be positive')
+assert(all([x>0; y>=0; A(:)>=0]),'MM solver: all variables (A,y,x0) should be positive')
 [m,n] = size(A);
 tol = 1e-9*(m/n);
 

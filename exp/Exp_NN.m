@@ -38,17 +38,14 @@ dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );
 %%%%%%%%%%%% MM algorithm %%%%%%%%%%%%
 if MM
 fprintf('\n======= Majorization-Minimization algorithm =======\n')
-
+% Run solvers
 tic, [xMM, outMM]= nnMM(y,A,x0,nb_iter); timeMM = toc;
-
 tic, [xMM_screen, outMM_screen] = nnMM(y,A,x0,nb_iter,false,screen_period,options.tdual); timeMM_Screen = toc;
 
 % Assert screening did not affect algorithm convergence point
 assert(norm(xMM - xMM_screen)/norm(xMM_screen)<1e-9, 'Error! Screening changed the MM solver result')
 
-fprintf('MM algorithm : %.4s s\n', timeMM)
-fprintf('MM + Screening : %.4s s\n', timeMM_Screen)
-fprintf('MM speedup : %.4s times \n', timeMM/timeMM_Screen)  
+print_time('MM',timeMM,timeMM_Screen, false)
 
 % Re-run to record duality gap at each iteration
 fprintf('\n... re-running solvers to compute duality gap offline ...\n')
@@ -57,24 +54,20 @@ fprintf('\n... re-running solvers to compute duality gap offline ...\n')
 
 time1e6 = outMM.time_it(find(outMMtmp.gap_it<1e-6,1));
 time1e6_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
-fprintf('MM algorithm : %.4s s (to reach gap<1e-6)\n', time1e6 )
-fprintf('MM + Screening : %.4s s (to reach gap<1e-6)\n', time1e6_screen )
-fprintf('MM speedup : %.4s times \n', time1e6/time1e6_screen)  
+print_time('MM',time1e6,time1e6_screen, true)
 end
 
 %%%%%%%%%%%% CoD algorithm %%%%%%%%%%%%
 if CoD
 fprintf('\n======= Coord. Descent algorithm =======\n')
+% Run solvers
 tic, [xHALS, outHALS]= nnlsHALSupdt(y,A,x0,nb_iter); timeHALS = toc;
-
 tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter,options); timeHALS_Screen = toc;
 
 % Assert screening did not affect algorithm convergence point
 assert(norm(xHALS - xHALS_screen)/norm(xHALS_screen)<1e-9, 'Error! Screening changed the CoD solver result')
 
-fprintf('CoD algorithm : %.4s s\n', timeHALS)
-fprintf('CoD + Screening : %.4s s\n', timeHALS_Screen)
-fprintf('CoD speedup : %.4s times \n', timeHALS/timeHALS_Screen)  
+print_time('CoD',timeHALS,timeHALS_Screen, false)  
 
 % Re-run to record duality gap at each iteration
 fprintf('\n... re-running solvers to compute duality gap offline ...\n')
@@ -85,18 +78,14 @@ options.calc_gap = false;
 
 time1e6 = outHALS.time_it(find(outHALStmp.gap_it<1e-6,1));
 time1e6_screen = outHALS_screen.time_it(find(outHALS_screentmp.gap_it<1e-6,1));
-fprintf('CoD algorithm : %.4s s (to reach gap<1e-6)\n', time1e6 )
-fprintf('CoD + Screening : %.4s s (to reach gap<1e-6)\n', time1e6_screen )
-fprintf('CoD speedup : %.4s times \n', time1e6/time1e6_screen)  
+print_time('CoD',time1e6,time1e6_screen, true)
 end
+
 %%%%%%%%%%%% Active Set algorithm %%%%%%%%%%%%
 if ActiveSet
 fprintf('\n======= Active Set algorithm =======\n')
-
-% profile on
+% Run solvers
 tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
-% profile off, profsave(profile('info'),'./new_Profile_AS-NNLS')
-
 % profile on
 tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_Screen = toc;
 % profile off, profsave(profile('info'),'./new_Profile_AS-Screen-NNLS')
@@ -104,9 +93,7 @@ tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_S
 % Assert screening did not affect algorithm convergence point
 assert(norm(xAS - xAS_screen)/norm(xAS_screen)<1e-9, 'Error! Screening changed the Active Set solver result')
 
-fprintf('Active Set algorithm : %.4s s\n', timeAS)
-fprintf('Active Set + Screening : %.4s s\n', timeAS_Screen)
-fprintf('Active Set speedup : %.4s times \n', timeAS/timeAS_Screen) 
+print_time('Active Set',timeHALS,timeHALS_Screen, false)  
 
 % Re-run to record duality gap at each iteration
 fprintf('\n... re-running solvers to compute duality gap offline ...\n')
@@ -117,9 +104,7 @@ options.calc_gap = false;
 
 time1e6 = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
 time1e6_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
-fprintf('Active Set algorithm : %.4s s (to reach gap<1e-6)\n', time1e6 )
-fprintf('Active Set + Screening : %.4s s (to reach gap<1e-6)\n', time1e6_screen )
-fprintf('Active Set speedup : %.4s times \n', time1e6/time1e6_screen)  
+print_time('Active Set',time1e6,time1e6_screen, true)
 end
 
 %% Results
@@ -132,6 +117,7 @@ if ~exist('omitResults','var')
     
     max_time = 0; max_iter = 0;
     legendvec = {}; legendvec2 = {}; legendvec3 = {};
+    clear nb_zeros
     if CoD
     nb_zeros = sum(xHALS<1e-10); % Number of zeros in the solution (baseline)
     %%%% Duality gap vs. Time %%%
@@ -242,8 +228,14 @@ if ~exist('omitResults','var')
             '_scrperiod' num2str(screen_period) '_noise-' noise_type ...
             '_sp' num2str(nb_zeros/n) '_seed' num2str(rng_seed)];  
     savefig([filename '.fig'])
-    
 
 end
 
+function print_time(solver_name, time_base, time_screen, gap)
 
+fprintf([solver_name ' algorithm   : %.4s s'], time_base)
+if gap, fprintf(' (to reach gap<1e-6)\n'), else, fprintf('\n'), end
+fprintf([solver_name ' + screening : %.4s s\n'], time_screen)
+fprintf([solver_name ' speedup     : %.4s times \n'], time_base/time_screen)
+
+end
