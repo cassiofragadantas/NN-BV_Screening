@@ -118,88 +118,32 @@ if ~exist('omitResults','var')
     max_time = 0; max_iter = 0;
     legendvec = {}; legendvec2 = {}; legendvec3 = {};
     clear nb_zeros
+
     if CoD
-    nb_zeros = sum(xHALS<1e-10); % Number of zeros in the solution (baseline)
-    %%%% Duality gap vs. Time %%%
-    figure(2), subplot(2,1,1),
-    % Baseline    
-    semilogy(outHALS.time_it,outHALStmp.gap_it,'k'), hold on,
-    legendvec{end+1} = 'Coord. Descent (baseline)';
-    % Screening
-    set(gca,'ColorOrderIndex',1)
-    semilogy(outHALS_screen.time_it,outHALS_screentmp.gap_it)
-    legendvec{end+1} = 'Coord. Descent + Screening';
-    %%%% Screening ratio vs. Time %%%                
-    subplot(2,1,2), hold on
-    set(gca,'ColorOrderIndex',1)
-    plot(outHALS_screen.time_it(screen_period:screen_period:end),outHALS_screen.nb_screen_it(screen_period:screen_period:end)/n),
-    legendvec2{end+1} = 'Coord. Descent + Screening';
-
-    max_time = max(max_time,outHALS.time_it(end));
-    max_iter = max(max_iter,length(outHALS.time_it));    
-
-    %%%% Screening ratio vs. Iteration number %%%
-    figure(1), hold on,
-    set(gca,'ColorOrderIndex',1)
-    semilogy(screen_period:screen_period:length(outHALS_screen.nb_screen_it), ...
-             outHALS_screen.nb_screen_it(screen_period:screen_period:end)/n)
-    legendvec3{end+1} = 'Coord. Descent + Screening';    
+        [leg, leg2, leg3] = plot_results('Coord. Descent', n, ...
+                1, outHALS, outHALS_screen, outHALStmp, outHALS_screentmp, screen_period);
+        legendvec = [legendvec leg{:}]; legendvec2 = [legendvec2 leg2{:}]; legendvec3 = [legendvec3 leg3{:}];
+        nb_zeros = sum(xHALS<1e-10); % Number of zeros in the solution (baseline)
+        max_time = max(max_time,outHALS.time_it(end));
+        max_iter = max(max_iter,length(outHALS.time_it));
     end
     
     if ActiveSet
-    if ~exist('nb_zeros','var'),nb_zeros = sum(xAS<1e-10); end % Number of zeros in the solution (baseline)        
-    %%%% Duality gap vs. Time %%%
-    figure(2), subplot(2,1,1), grid on
-    % Baseline
-    semilogy(outAS.time_it,outAStmp.gap_it,'k:'), hold on,
-    legendvec{end+1} = 'Active Set (baseline)';  
-    % Screening
-    set(gca,'ColorOrderIndex',2)
-    semilogy(outAS_screen.time_it,outAS_screentmp.gap_it,':')
-    legendvec{end+1} = 'Active Set + Screening';    
-    %%%% Screening ratio vs. Time %%%            
-    subplot(2,1,2), hold on
-    set(gca,'ColorOrderIndex',2)
-    plot(outAS_screen.time_it(screen_period:screen_period:end),outAS_screen.nb_screen_it(screen_period:screen_period:end)/n,':'), 
-    legendvec2{end+1} = 'Active Set + Screening';
-
-    max_time = max(max_time,outAS.time_it(end));    
-    max_iter = max(max_iter,length(outAS.time_it));
-
-    %%%% Screening ratio vs. Iteration number %%%
-    figure(1), hold on,
-    set(gca,'ColorOrderIndex',2)
-    semilogy(screen_period:screen_period:length(outAS_screen.nb_screen_it), ...
-             outAS_screen.nb_screen_it(screen_period:screen_period:end)/n)
-    legendvec3{end+1} = 'Active Set + Screening'; 
+        [leg, leg2, leg3] = plot_results('Active Set', n, ...
+                2, outAS, outAS_screen, outAStmp, outAS_screentmp, screen_period);
+        legendvec = [legendvec leg{:}]; legendvec2 = [legendvec2 leg2{:}]; legendvec3 = [legendvec3 leg3{:}];
+        if ~exist('nb_zeros','var'),nb_zeros = sum(xAS<1e-10); end
+        max_time = max(max_time,outAS.time_it(end));
+        max_iter = max(max_iter,length(outAS.time_it));
     end
 
     if MM
-    if ~exist('nb_zeros','var'),nb_zeros = sum(xMM<1e-10); end % Number of zeros in the solution (baseline)
-    %%%% Duality gap vs. Time %%%
-    figure(2), subplot(2,1,1),
-    % Baseline    
-    semilogy(outMM.time_it,outMMtmp.gap_it,'k--'), hold on,
-    legendvec{end+1} = 'Multiplicative (baseline)';
-    % Screening
-    set(gca,'ColorOrderIndex',3)
-    semilogy(outMM_screen.time_it,outMM_screentmp.gap_it)
-    legendvec{end+1} = 'Multiplicative + Screening';
-    %%%% Screening ratio vs. Time %%%                
-    subplot(2,1,2), hold on
-    set(gca,'ColorOrderIndex',3)
-    plot(outMM_screen.time_it(screen_period:screen_period:end),outMM_screen.nb_screen_it(screen_period:screen_period:end)/n),
-    legendvec2{end+1} = 'Multiplicative + Screening';
-    
-    max_time = max(max_time,outMM.time_it(end));    
-    max_iter = max(max_iter,length(outMM.time_it));
-
-    %%%% Screening ratio vs. Iteration number %%%
-    figure(1), hold on, 
-    set(gca,'ColorOrderIndex',3)
-    semilogy(screen_period:screen_period:length(outMM_screen.nb_screen_it), ...
-             outMM_screen.nb_screen_it(screen_period:screen_period:end)/n)
-    legendvec3{end+1} = 'Multipliative + Screening'; 
+        [leg, leg2, leg3] = plot_results('Multiplicative', n, ...
+                3, outMM, outMM_screen, outMMtmp, outMM_screentmp, screen_period);
+        legendvec = [legendvec leg{:}]; legendvec2 = [legendvec2 leg2{:}]; legendvec3 = [legendvec3 leg3{:}];
+        if ~exist('nb_zeros','var'),nb_zeros = sum(xMM<1e-10); end
+        max_time = max(max_time,outMM.time_it(end));
+        max_iter = max(max_iter,length(outMM.time_it));
     end        
 
     % Oracle screening ratio
@@ -237,5 +181,35 @@ fprintf([solver_name ' algorithm   : %.4s s'], time_base)
 if gap, fprintf(' (to reach gap<1e-6)\n'), else, fprintf('\n'), end
 fprintf([solver_name ' + screening : %.4s s\n'], time_screen)
 fprintf([solver_name ' speedup     : %.4s times \n'], time_base/time_screen)
+
+end
+
+function [legendvec, legendvec2, legendvec3] = plot_results(solver_name, n, ...
+            color, out, out_screen, out_gap, out_screen_gap, screen_period)
+
+    legendvec = {}; legendvec2 = {}; legendvec3 = {};
+
+    %%%% Duality gap vs. Time %%%
+    figure(2), subplot(2,1,1),
+    % Baseline
+    set(gca,'ColorOrderIndex',color)
+    semilogy(out.time_it,out_gap.gap_it,':'), hold on,
+    legendvec{end+1} = [solver_name ' (baseline)'];
+    % Screening
+    set(gca,'ColorOrderIndex',color)
+    semilogy(out_screen.time_it,out_screen_gap.gap_it)
+    legendvec{end+1} = [solver_name ' + Screening'];
+    %%%% Screening ratio vs. Time %%%
+    subplot(2,1,2), hold on
+    set(gca,'ColorOrderIndex',color)
+    plot(out_screen.time_it(screen_period:screen_period:end),out_screen.nb_screen_it(screen_period:screen_period:end)/n),
+    legendvec2{end+1} = [solver_name ' + Screening'];
+
+    %%%% Screening ratio vs. Iteration number %%%
+    figure(1), hold on,
+    set(gca,'ColorOrderIndex',color)
+    semilogy(screen_period:screen_period:length(out_screen.nb_screen_it), ...
+             out_screen.nb_screen_it(screen_period:screen_period:end)/n)
+    legendvec3{end+1} = [solver_name ' + Screening'];
 
 end
