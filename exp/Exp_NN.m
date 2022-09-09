@@ -14,9 +14,13 @@ m = 1000; %2000
 n = 1000; %500, 1000, 2000, 5000
 density_x = 0.05;
 nb_iter = 30000; %maximum number of iterations
+screen_period = 10;
 
-% Algorithm selection (set to false to skip solver) 
+% Solver selection (set to false to skip) 
 MM = false; CoD = true; ActiveSet = true;
+
+% Solvers initialization
+x0 = ones(n,1); % abs(randn(n,1));
 
 % Noise (type and level)
 noise_type = 'gaussian_snr'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
@@ -25,113 +29,37 @@ noise_val = 10; % snr or noise standard deviation
 % Generate data
 [A,y,options.tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
 
-%% Initializations
-
-% Primal and dual cost functions
-% Euclidean distance
+% Primal and dual cost functions: Euclidean distance
 primal = @(a) 0.5*sum( (y - a).^2 );
-dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );    
+dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );
 
-% Screening initialization
-screen_period = 10;
-normA = sqrt(sum(A.^2)).';
-sumA = (A.'*options.tdual).';
-
-% Storage variables
-cost = zeros(1,nb_iter);            %save cost function evolution
-dualgap = zeros(1,nb_iter);         %save duality gap evolution
-timeIt = zeros(1,nb_iter);          %save total time at each iteration
-costScreen = zeros(1,nb_iter);      %save cost function evolution
-dualgapScreen = zeros(1,nb_iter);   %save duality evolution
-timeItScreen = zeros(1,nb_iter);    %save total time at each iteration
-screen_ratio = zeros(1,nb_iter);    %save screening ratio evolution
-rejected_coords = zeros(1,n);
 
 %% Find x such that y=Ax, given A and y
-A0=A; 
-x0 = zeros(n,1); % abs(randn(n,1));
 %%%%%%%%%%%% MM algorithm %%%%%%%%%%%%
 if MM
 fprintf('\n======= Majorization-Minimization algorithm =======\n')
-assert(all([x0>0; y>0; A(:)>0]),'MM solver: all variables (A,y,x0) should be positive')
-% No screening
-x = x0;
-Ax = A*x;
-startTime = tic;
-calc_gap = true;
-tol = 1e-9*(m/n); deltax = 1; deltax0 = 0;
-% for k = 1:nb_iter
-while deltax >= tol^2*deltax0 && k <= maxiter %Maximum number of iterations
-    xprev = x;
-    
-    % -- Primal update --
-    % Multiplicative update
-    % generic beta divergence
-%     x = x.*( (A.'*(y.*Ax.^(beta-2))) ./ (A.'*(Ax.^(beta-1))) ); %.^gamma;
-    % beta=2 (euclidean case)
-    ATy = A.'*y;
-    ATAx = A.'*Ax;
-    x = x.*( ATy ./ ATAx ); 
-    Ax = A*x;
-    
-    % Stopping criterion
-    if k==1, deltax0 = norm(x-x0); else, deltax = norm(x-xprev); end
-    
-    timeIt(k) = toc(startTime);
-    k = k+1;
-end
-xMM = x;
 
+tic, [xMM, outMM]= nnMM(y,A,x0,nb_iter); timeMM = toc;
 
-% Screening
-x = x0;
-Ax = A*x;
-startTime = tic;
-tol = 1e-9*(m/n); deltax = 1; deltax0 = 0;
-% for k = 1:nb_iter
-while deltax >= tol^2*deltax0 && k <= maxiter %Maximum number of iterations
-    xprev = x;
-
-    % -- Primal update --
-    % Multiplicative update
-    ATy = A.'*y;
-    ATAx = A.'*Ax;
-    x = x.*( ATy ./ ATAx );
-    Ax = A*x;
-
-    % -- Screening --
-    if mod(k,screen_period) == 0
-        % Notation: d - C*X
-        [screen_vec, trace] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, sumA);
-       
-        A(:,screen_vec) = []; 
-        x(screen_vec) = [];
-        sumA(screen_vec) = [];
-        normA(screen_vec) = [];
-        rejected_coords(~rejected_coords) = screen_vec;       
-    end
-    
-    % Stopping criterion
-    if k==1, deltax0 = norm(x-x0); else, deltax = norm(x-xprev); end
-
-    screen_ratio(k) = sum(rejected_coords)/n;
-    timeItScreen(k) = toc(startTime);
-    
-    k = k+1;
-end
-
-% zero-padding solution
-xprev = x;
-x = zeros(n,1);
-x(~rejected_coords) = xprev;
-A = A0;
+tic, [xMM_screen, outMM_screen] = nnMM(y,A,x0,nb_iter,false,screen_period,options.tdual); timeMM_Screen = toc;
 
 % Assert screening did not affect algorithm convergence point
-assert(norm(xMM - x)/norm(x)<1e-9, 'Error! Screening changed the MM solver result')
+assert(norm(xMM - xMM_screen)/norm(xMM_screen)<1e-9, 'Error! Screening changed the MM solver result')
 
-fprintf('MM algorithm : %.2f s\n', timeIt(end))
-fprintf('MM + Screening : %.2f s\n', timeItScreen(end))
-fprintf('MM speedup : %.2f times \n', timeIt(end)/timeItScreen(end))
+fprintf('MM algorithm : %.4s s\n', timeMM)
+fprintf('MM + Screening : %.4s s\n', timeMM_Screen)
+fprintf('MM speedup : %.4s times \n', timeMM/timeMM_Screen)  
+
+% Re-run to record duality gap at each iteration
+fprintf('\n... re-running solvers to compute duality gap offline ...\n')
+[~, outMMtmp]= nnMM(y,A,x0,nb_iter,true,0,options.tdual);
+[~, outMM_screentmp] = nnMM(y,A,x0,nb_iter,true,screen_period,options.tdual);
+
+time1e6 = outMM.time_it(find(outMMtmp.gap_it<1e-6,1));
+time1e6_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
+fprintf('MM algorithm : %.4s s (to reach gap<1e-6)\n', time1e6 )
+fprintf('MM + Screening : %.4s s (to reach gap<1e-6)\n', time1e6_screen )
+fprintf('MM speedup : %.4s times \n', time1e6/time1e6_screen)  
 end
 
 %%%%%%%%%%%% CoD algorithm %%%%%%%%%%%%
@@ -203,16 +131,14 @@ end
 
 %% Results
 if ~exist('omitResults','var')
-    filename = ['new_Exp_NN_' exp_type '_m' num2str(m) 'n' num2str(n) ... 
-                '_scrperiod' num2str(screen_period) '_noise-' noise_type ...
-                '_sp' num2str(nnz(xAS)/n) '_seed' num2str(rng_seed)];  
             
     % Plot properties setting
     set(0,'DefaultTextInterpreter','latex'), set(0,'DefaultLegendInterpreter','latex');
     set(0,'DefaultAxesTickLabelInterpreter', 'latex'); %groot,
     set(0, 'DefaultLineLineWidth', 2);
     
-    legendvec = {}; legendvec2 = {};
+    max_time = 0; max_iter = 0;
+    legendvec = {}; legendvec2 = {}; legendvec3 = {};
     if CoD
     nb_zeros = sum(xHALS<1e-10); % Number of zeros in the solution (baseline)
     %%%% Duality gap vs. Time %%%
@@ -226,66 +152,105 @@ if ~exist('omitResults','var')
     legendvec{end+1} = 'Coord. Descent + Screening';
     %%%% Screening ratio vs. Time %%%                
     subplot(2,1,2), hold on
-    plot([0 outHALS.time_it(end)], repmat(nb_zeros/n,1,2),'--','color',0.5*[1 1 1]) 
-    legendvec2{end+1} = 'Oracle';
     set(gca,'ColorOrderIndex',1)
-    plot(outHALS_screen.time_it(10:10:end),outHALS_screen.nb_screen_it(10:10:end)/n),
+    plot(outHALS_screen.time_it(screen_period:screen_period:end),outHALS_screen.nb_screen_it(screen_period:screen_period:end)/n),
     legendvec2{end+1} = 'Coord. Descent + Screening';
-    
-    figure(1), hold on, semilogy(outHALS_screen.nb_screen_it(10:10:end)/n)
+
+    max_time = max(max_time,outHALS.time_it(end));
+    max_iter = max(max_iter,length(outHALS.time_it));    
+
+    %%%% Screening ratio vs. Iteration number %%%
+    figure(1), hold on,
+    set(gca,'ColorOrderIndex',1)
+    semilogy(screen_period:screen_period:length(outHALS_screen.nb_screen_it), ...
+             outHALS_screen.nb_screen_it(screen_period:screen_period:end)/n)
+    legendvec3{end+1} = 'Coord. Descent + Screening';    
     end
     
     if ActiveSet
+    if ~exist('nb_zeros','var'),nb_zeros = sum(xAS<1e-10); end % Number of zeros in the solution (baseline)        
     %%%% Duality gap vs. Time %%%
     figure(2), subplot(2,1,1), grid on
-    % Baseline    
+    % Baseline
     semilogy(outAS.time_it,outAStmp.gap_it,'k:'), hold on,
-    legendvec{end+1} = 'Active Set (baseline)';    
+    legendvec{end+1} = 'Active Set (baseline)';  
     % Screening
     set(gca,'ColorOrderIndex',2)
     semilogy(outAS_screen.time_it,outAS_screentmp.gap_it,':')
     legendvec{end+1} = 'Active Set + Screening';    
     %%%% Screening ratio vs. Time %%%            
     subplot(2,1,2), hold on
-%     plot([0 outAS.time_it(end)], repmat(nb_zeros/n,1,2),'--','color',0.5*[1 1 1]) 
     set(gca,'ColorOrderIndex',2)
-    plot(outAS_screen.time_it(10:10:end),outAS_screen.nb_screen_it(10:10:end)/n,':'), 
-    legendvec2{end+1} = 'Active Set + Screening';    
+    plot(outAS_screen.time_it(screen_period:screen_period:end),outAS_screen.nb_screen_it(screen_period:screen_period:end)/n,':'), 
+    legendvec2{end+1} = 'Active Set + Screening';
+
+    max_time = max(max_time,outAS.time_it(end));    
+    max_iter = max(max_iter,length(outAS.time_it));
+
+    %%%% Screening ratio vs. Iteration number %%%
+    figure(1), hold on,
+    set(gca,'ColorOrderIndex',2)
+    semilogy(screen_period:screen_period:length(outAS_screen.nb_screen_it), ...
+             outAS_screen.nb_screen_it(screen_period:screen_period:end)/n)
+    legendvec3{end+1} = 'Active Set + Screening'; 
     end
+
+    if MM
+    if ~exist('nb_zeros','var'),nb_zeros = sum(xMM<1e-10); end % Number of zeros in the solution (baseline)
+    %%%% Duality gap vs. Time %%%
+    figure(2), subplot(2,1,1),
+    % Baseline    
+    semilogy(outMM.time_it,outMMtmp.gap_it,'k--'), hold on,
+    legendvec{end+1} = 'Multiplicative (baseline)';
+    % Screening
+    set(gca,'ColorOrderIndex',3)
+    semilogy(outMM_screen.time_it,outMM_screentmp.gap_it)
+    legendvec{end+1} = 'Multiplicative + Screening';
+    %%%% Screening ratio vs. Time %%%                
+    subplot(2,1,2), hold on
+    set(gca,'ColorOrderIndex',3)
+    plot(outMM_screen.time_it(screen_period:screen_period:end),outMM_screen.nb_screen_it(screen_period:screen_period:end)/n),
+    legendvec2{end+1} = 'Multiplicative + Screening';
+    
+    max_time = max(max_time,outMM.time_it(end));    
+    max_iter = max(max_iter,length(outMM.time_it));
+
+    %%%% Screening ratio vs. Iteration number %%%
+    figure(1), hold on, 
+    set(gca,'ColorOrderIndex',3)
+    semilogy(screen_period:screen_period:length(outMM_screen.nb_screen_it), ...
+             outMM_screen.nb_screen_it(screen_period:screen_period:end)/n)
+    legendvec3{end+1} = 'Multipliative + Screening'; 
+    end        
+
+    % Oracle screening ratio
+    figure(2), subplot(2,1,2)
+    plot([0 max_time], repmat(nb_zeros/n,1,2),'--','color',0.5*[1 1 1]) 
+    legendvec2{end+1} = 'Oracle';
+    figure(1), hold on
+    plot([0 max_iter], repmat(nb_zeros/n,1,2),'--','color',0.5*[1 1 1]) 
+    legendvec3{end+1} = 'Oracle';
+
+    % Labels, title, legend
+    figure(1), title(['m=' num2str(m) ', n=' num2str(n)]),
+    ylabel('Screening ratio'), xlabel('Iteration number'), grid on
+    legend(legendvec3, 'Location', 'southeast')
     
     figure(2), subplot(2,1,1), grid on
+    title(['m=' num2str(m) ', n=' num2str(n)]),
     ylabel('Duality gap'), xlabel('Time [s]'), grid on
     legend(legendvec)
     subplot(2,1,2), grid on
-%     xlim([0 outHALS.time_it(end)]), ylim([0 1])
     ylabel('Screening ratio [\%]'), xlabel('Time [s]'), grid on
     legend(legendvec2, 'Location', 'southeast') 
-    
+
+    % Save figure
+    filename = ['new_Exp_NN_' exp_type '_m' num2str(m) 'n' num2str(n) ... 
+            '_scrperiod' num2str(screen_period) '_noise-' noise_type ...
+            '_sp' num2str(nb_zeros/n) '_seed' num2str(rng_seed)];  
     savefig([filename '.fig'])
     
-    %%%% Screening ratio vs. Iteration number %%%
-    if MM
-    figure(1)
-    subplot(2,1,1), title(['m=' num2str(m) ', n=' num2str(n)]),
-    semilogy(dualgapScreen), ylabel('Duality gap')
-    legend({ 'MM solver + Screening'})
-    subplot(2,1,2), hold on, 
-    plot(screen_ratio), ylim([0 1]), ylabel('Screening ratio')
-    nb_zeros = sum(xHALS<1e-10); % Number of zeros in the solution (baseline)
-    hold on, plot([1 nb_iter], repmat(nb_zeros/n,1,2),'--')
-    legend({'Screened (%)', 'Oracle sparsity (%)'}, 'Location', 'southeast')
 
-    %%%% Duality gap vs. Time %%%
-    figure(2), subplot(2,1,1), hold on
-    semilogy(timeItScreen,dualgapScreen), semilogy(timeIt,dualgap,'k')
-    ylabel('Duality gap'), xlabel('Time [s]'), grid on
-    legend({ 'MM solver + Screening', 'MM solver'})
-    subplot(2,1,2), hold on
-    plot(timeItScreen,screen_ratio), xlim([0 timeIt(end)]), ylim([0 1])
-    plot([0 timeIt(end)], repmat(nb_zeros/n,1,2),'--','color',0.5*[1 1 1])
-    ylabel('Screening ratio'), xlabel('Time [s]'), grid on
-    legend({'Screened (%)' 'Oracle (%)'}, 'Location', 'southeast')
-    end    
 end
 
 
