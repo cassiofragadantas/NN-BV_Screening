@@ -1,4 +1,4 @@
-function [x,resnorm,resid,exitflag,output,lambda] = lsqnonneg_Screen2(C,d,options,varargin)
+function [x,resnorm,resid,exitflag,output,lambda] = lsqnonneg_Screen(C,d,options,varargin)
 % Memory-efficient version of lsqnonneg_Screen. Time performance is
 % similar.
 %LSQNONNEG Linear least squares with nonnegativity constraints.
@@ -68,6 +68,11 @@ if isfield(options,'calc_gap')
     calc_gap = options.calc_gap;
 else
     calc_gap = false;
+end
+if isfield(options,'screen_period')
+    screen_period = options.screen_period;
+else
+    screen_period = 10; %Screening tests are performed every screen_period iterations
 end
 
 if nargin == 1
@@ -158,7 +163,6 @@ assert(isfield(options,'tdual'),'tdual should be provided');
 sumC = options.tdual.'*C;
 normC = sqrt(sum(C.^2,1)).';
 screen_vec = false(n,1);
-screen_period = 10; % screening test performed every screen_period iterations
 
 % Set up iteration criterion
 outeriter = 0;

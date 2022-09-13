@@ -24,7 +24,7 @@ noise_type = 'gaussian_snr'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr
 noise_val = 10; % snr or noise standard deviation
 
 % Generate data
-[A,y,n,options.tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
+[A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
 
 % Primal and dual cost functions: Euclidean distance
 primal = @(a) 0.5*sum( (y - a).^2 );
@@ -39,7 +39,7 @@ if MM
     fprintf('\n======= Majorization-Minimization algorithm =======\n')
     % Run solvers
     tic, [xMM, outMM]= nnMM(y,A,x0,nb_iter); timeMM = toc;
-    tic, [xMM_screen, outMM_screen] = nnMM(y,A,x0,nb_iter,false,screen_period,options.tdual); timeMM_Screen = toc;
+    tic, [xMM_screen, outMM_screen] = nnMM(y,A,x0,nb_iter,false,screen_period,tdual); timeMM_Screen = toc;
     
     % Assert screening did not affect algorithm convergence point
     assert(norm(xMM - xMM_screen)/norm(xMM_screen)<1e-9, 'Error! Screening changed the MM solver result')
@@ -48,8 +48,8 @@ if MM
     
     % Re-run to record duality gap at each iteration
     fprintf('\n... re-running solvers to compute duality gap offline ...\n')
-    [~, outMMtmp]= nnMM(y,A,x0,nb_iter,true,0,options.tdual);
-    [~, outMM_screentmp] = nnMM(y,A,x0,nb_iter,true,screen_period,options.tdual);
+    [~, outMMtmp]= nnMM(y,A,x0,nb_iter,true,0,tdual);
+    [~, outMM_screentmp] = nnMM(y,A,x0,nb_iter,true,screen_period,tdual);
     
     time1e6 = outMM.time_it(find(outMMtmp.gap_it<1e-6,1));
     time1e6_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
@@ -59,6 +59,9 @@ end
 %%%%%%%%%%%% CoD algorithm %%%%%%%%%%%%
 if CoD
     fprintf('\n======= Coord. Descent algorithm =======\n')
+    options.screen_period = screen_period;
+    options.tdual = tdual;
+
     % Run solvers
     tic, [xHALS, outHALS]= nnlsHALSupdt(y,A,x0,nb_iter); timeHALS = toc;
     tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter,options); timeHALS_Screen = toc;
@@ -83,6 +86,9 @@ end
 %%%%%%%%%%%% Active Set algorithm %%%%%%%%%%%%
 if ActiveSet
     fprintf('\n======= Active Set algorithm =======\n')
+    options.screen_period = screen_period;
+    options.tdual = tdual;
+
     % Run solvers
     tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
     % profile on
@@ -125,6 +131,14 @@ if ~exist('omitResults','var')
         nb_zeros = sum(xHALS<1e-10); % Number of zeros in the solution (baseline)
         max_time = max(max_time,outHALS.time_it(end));
         max_iter = max(max_iter,length(outHALS.time_it));
+        %%%% Identifiable zeros %%%%
+        res = (y - A*xHALS_screen);
+        ATres = A.'*res;
+        sumA = tdual.'*A;    
+        epsilon = max(ATres./sumA.'); %max(ATres) also works if A is normalized, but is slightly worse.
+        %theta = res - epsilon*tdual;
+        ATtheta = ATres - epsilon*sumA.'; %= A.'* theta; Should be zero at coordinates xj ~= 0 and negative otherwise
+        screenable_zeros = (ATtheta<-sqrt(2*outHALS_screentmp.gap_it(end)));
     end
     
     if ActiveSet
@@ -159,7 +173,7 @@ if ~exist('omitResults','var')
     legend(legendvec3, 'Location', 'southeast')
     
     figure(2), subplot(2,1,1), grid on
-    title(['m=' num2str(m) ', n=' num2str(n)]),
+    title([exp_type ': m=' num2str(m) ', n=' num2str(n)]),
     ylabel('Duality gap'), xlabel('Time [s]'), grid on
     legend(legendvec)
     subplot(2,1,2), grid on

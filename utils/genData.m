@@ -19,7 +19,7 @@ function [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,nor
             % Tall A (m>=n) with random unit-norm columns
             if n > m, warning('Matrix A should be tall, setting n = m/2.'); n=floor(m/2); end
             A = randn(m,n); 
-        case {'orthogonal', 'case 2'} 
+        case {'orthogonal', 'case2'} 
             % Random orthogonal (square) A
             if n ~= m, warning('Matrix A should be square, setting n = m.'); n=m; end
             A = randn(m,n); A = orth(A);
@@ -31,10 +31,11 @@ function [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,nor
             % Create a big number of columns and keep only the ones that 
             % are positively correlated to the first column
             A = randn(m,1);
+            minCorr = 0; % minimum correlation (>=0)
             while size(A,2) < n
                 newCols = randn(m,2*n);
                 correl = A(:,1).'*newCols;
-                A = [A newCols(:,correl>0)];
+                A = [A newCols(:,correl>minCorr)];
             end
             A = A(:,1:n); 
         case 'cone' 

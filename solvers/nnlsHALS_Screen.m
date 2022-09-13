@@ -40,6 +40,11 @@ if isfield(options,'calc_gap')
 else
     calc_gap = false;
 end
+if isfield(options,'screen_period')
+    screen_period = options.screen_period;
+else
+    screen_period = 10; %Screening tests are performed every screen_period iterations
+end
 
 %[m, N] = size(M); 
 [m,n] = size(U); 
@@ -58,11 +63,9 @@ tdual = options.tdual;
 normU = sqrt(diag(UtU));
 sumU = tdual.'*U;
 screen_vec = false(size(V));
-screen_period = 10; %Screening tests are performed every screen_period iterations
 
 
-
-delta = 1e-9; % Stopping condition depending on evolution of the iterate V: 
+delta = 1e-15; % Stopping condition depending on evolution of the iterate V: 
               % Stop if ||V^{k}-V^{k+1}||_F <= delta * ||V^{0}-V^{1}||_F 
               % where V^{k} is the kth iterate. 
 eps0 = 0; cnt = 1; eps = 1; 
