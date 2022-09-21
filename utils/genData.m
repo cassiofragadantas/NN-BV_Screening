@@ -69,6 +69,7 @@ function [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val,nor
             [U, S, V] = svd(A,'econ');
             cond_factor = 1000; % try 10^-3, 10^-1, 1, 10, 1000
             A = U*diag((diag(S)-S(end))*cond_factor + S(end))*V.';
+            A = abs(A);
         otherwise
             load_dataset
     end

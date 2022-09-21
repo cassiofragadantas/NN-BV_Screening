@@ -12,16 +12,16 @@ exp_type = 'synthetic'; % Options: 'synthetic', or some real dataset
 % Dimensions (only for synthetic experiments, irrelevant otherwise)
 m = 1000; %2000
 n = 1000; %500, 1000, 2000, 5000
-density_x = 0.05;
+density_x = 0.1;
 nb_iter = 30000; %maximum number of iterations
-screen_period = 10;
+screen_period = 50;
 
 % Solver selection (set to false to skip) 
 MM = false; CoD = true; ActiveSet = true;
 
 % Noise (type and level)
 noise_type = 'gaussian_snr'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
-noise_val = 10; % snr or noise standard deviation
+noise_val = 0; % snr or noise standard deviation
 
 % Generate data
 [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
@@ -51,9 +51,9 @@ if MM
     [~, outMMtmp]= nnMM(y,A,x0,nb_iter,true,0,tdual);
     [~, outMM_screentmp] = nnMM(y,A,x0,nb_iter,true,screen_period,tdual);
     
-    time1e6 = outMM.time_it(find(outMMtmp.gap_it<1e-6,1));
-    time1e6_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
-    print_time('MM',time1e6,time1e6_screen, true)
+    time1e6MM = outMM.time_it(find(outMMtmp.gap_it<1e-6,1));
+    time1e6MM_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
+    print_time('MM',time1e6MM,time1e6MM_screen, true)
 end
 
 %%%%%%%%%%%% CoD algorithm %%%%%%%%%%%%
@@ -65,7 +65,7 @@ if CoD
     % Run solvers
     tic, [xHALS, outHALS]= nnlsHALSupdt(y,A,x0,nb_iter); timeHALS = toc;
     tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter,options); timeHALS_Screen = toc;
-    
+
     % Assert screening did not affect algorithm convergence point
     assert(norm(xHALS - xHALS_screen)/norm(xHALS_screen)<1e-9, 'Error! Screening changed the CoD solver result')
     
@@ -78,9 +78,9 @@ if CoD
     [~, outHALS_screentmp] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
     options.calc_gap = false;
     
-    time1e6 = outHALS.time_it(find(outHALStmp.gap_it<1e-6,1));
-    time1e6_screen = outHALS_screen.time_it(find(outHALS_screentmp.gap_it<1e-6,1));
-    print_time('CoD',time1e6,time1e6_screen, true)
+    time1e6HALS = outHALS.time_it(find(outHALStmp.gap_it<1e-6,1));
+    time1e6HALS_screen = outHALS_screen.time_it(find(outHALS_screentmp.gap_it<1e-6,1));
+    print_time('CoD',time1e6HALS,time1e6HALS_screen, true)
 end
 
 %%%%%%%%%%%% Active Set algorithm %%%%%%%%%%%%
@@ -107,9 +107,9 @@ if ActiveSet
     [~,~,~,~,outAS_screentmp,~] = lsqnonneg_Screen(A,y,options);
     options.calc_gap = false;
     
-    time1e6 = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
-    time1e6_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
-    print_time('Active Set',time1e6,time1e6_screen, true)
+    time1e6AS = outAS.time_it(find(outAStmp.gap_it<1e-6,1));
+    time1e6AS_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
+    print_time('Active Set',time1e6AS,time1e6AS_screen, true)
 end
 
 %% Results
