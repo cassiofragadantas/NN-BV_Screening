@@ -74,6 +74,12 @@ if isfield(options,'screen_period')
 else
     screen_period = 10; %Screening tests are performed every screen_period iterations
 end
+if isfield(options,'oracle_dual')
+    precalc.oracle_theta = options.oracle_dual;
+    precalc.oracle_ATtheta = C.'*options.oracle_dual;
+else
+    precalc = [];
+end
 
 if nargin == 1
     % Detect problem structure input
@@ -225,7 +231,7 @@ while any(Z) && any(w(Z) > tol)
    %% Safe screening
    if mod(outeriter,screen_period) == 0
        % Notation: d - C*X
-       [screen_new, ~] = nnGapSafeScreen(d, C, resid, w, normC, sumC, options.tdual);
+       [screen_new, ~] = nnGapSafeScreen(d, C, resid, w, normC, sumC, options.tdual, precalc);
        
        C(:,screen_new) = [];
        sumC(screen_new) = [];
@@ -238,6 +244,7 @@ while any(Z) && any(w(Z) > tol)
        nZeros(screen_new) = [];
        screen_vec(~screen_vec) = screen_new;
        output.nb_screen_it(outeriter) = sum(screen_vec);
+       if isfield(options,'oracle_dual'), precalc.oracle_ATtheta(screen_new) = []; end
    end
    
    output.time_it(outeriter) = toc(startTime);
@@ -245,7 +252,7 @@ while any(Z) && any(w(Z) > tol)
    % Not executed normally! Compute gap for illustration-purpose only
    if calc_gap
       % Notation: d - C*X
-      [~, trace] = nnGapSafeScreen(d, C, resid, w, normC, sumC, options.tdual);
+      [~, trace] = nnGapSafeScreen(d, C, resid, w, normC, sumC, options.tdual, precalc);
       output.gap_it(outeriter) = trace.gap;
    end
 end

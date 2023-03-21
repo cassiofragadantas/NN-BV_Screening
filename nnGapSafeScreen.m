@@ -1,4 +1,4 @@
-function [screen_vec, trace] = nnGapSafeScreen(y, A, res, ATres, normA, sumA,t)
+function [screen_vec, trace] = nnGapSafeScreen(y, A, res, ATres, normA, sumA,t,precalc)
 % Returns a n-dimensional logic vector with true entries indicating the
 % saturated (zero) coordinates.
 %
@@ -26,11 +26,17 @@ primal = @(a) 0.5*sum( (y - a).^2 );
 dual = @(b) 0.5*sum( y.^2 - (y - b).^2 );
 
 % -- Dual update --
-% Dual feasible point
-epsilon = max(ATres./sumA.'); %max(ATres) also works if A is normalized, but is slightly worse.
-theta = res - epsilon*t;
+if exist('precalc','var') && isfield(precalc,'oracle_theta')
+    % Oracle dual point
+    theta = precalc.oracle_theta;
+    ATtheta = precalc.oracle_ATtheta; 
+else
+    % Dual feasible point    
+    epsilon = max(ATres./sumA.'); %max(ATres) also works if A is normalized, but is slightly worse.
+    theta = res - epsilon*t;
+    ATtheta = ATres - epsilon*sumA.'; %= A.'* theta; Should be zero at coordinates xj ~= 0 and negative otherwise    
+end
 
-ATtheta = ATres - epsilon*sumA.'; %= A.'* theta; Should be zero at coordinates xj ~= 0 and negative otherwise
 
 % -- Duality gap --
 gap = primal(y-res) - dual(theta); % gap has to be calculated anyway for GAP_Safe

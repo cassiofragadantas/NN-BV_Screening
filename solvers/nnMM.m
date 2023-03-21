@@ -1,4 +1,4 @@
-function [x, output] = nnMM(y,A,x,maxiter,calc_gap,screen_period,tdual)
+function [x, output] = nnMM(y,A,x,maxiter,calc_gap,screen_period,tdual,options)
 
 % Default input variables
 if nargin < 2, error('nnMM: Inputs {y, A} are mandatory'); end
@@ -7,9 +7,17 @@ if nargin < 4, maxiter = 1e5; end
 if nargin < 5, calc_gap = false; end
 if nargin < 6, screen_period = 0; end
 if nargin < 7, tdual=ones(size(y)); end
+if nargin < 8, options=[]; end
 assert(all([x>0; y>=0; A(:)>=0]),'MM solver: all variables (A,y,x0) should be positive')
 [m,n] = size(A);
 tol = 1e-9*(m/n);
+
+if isfield(options,'oracle_dual')
+    precalc.oracle_theta = options.oracle_dual;
+    precalc.oracle_ATtheta = A.'*options.oracle_dual;
+else
+    precalc = [];
+end
 
 % Screening initialization (if activated)
 if screen_period || calc_gap % Safe screening activated: initializations
@@ -47,13 +55,13 @@ while ~converged && k <= maxiter %Maximum number of iterations
 
     % Not executed normally! Compute gap for illustration-purpose only
     if calc_gap
-        [~, trace] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, sumA,tdual);
+        [~, trace] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, sumA,tdual,precalc);
         output.gap_it(k) = trace.gap;
     end
 
     % -- Screening --
     if mod(k,screen_period) == 0
-        [screen_vec, ~] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, sumA,tdual);
+        [screen_vec, ~] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, sumA,tdual,precalc);
        
         A(:,screen_vec) = []; 
         x(screen_vec) = [];
@@ -61,6 +69,7 @@ while ~converged && k <= maxiter %Maximum number of iterations
         normA(screen_vec) = [];
         rejected_coords(~rejected_coords) = screen_vec;
         output.nb_screen_it(k) = sum(rejected_coords);
+        if isfield(options,'oracle_dual'), precalc.oracle_ATtheta(screen_vec) = []; end        
     end
 
     output.time_it(k) = toc(startTime);

@@ -16,10 +16,10 @@ function [screen_vec, precalc, trace] = nnKLGapSafeScreen(y, A, res, ATres, norm
 
 % Handle inputs (should be provided by the user for competitive results)
 if nargin < 2, error('Two first input parameters (y and A) are mandatory.')
-elseif nargin < 3, res = y/Ax -1; %KL case. y - A*x; %LS case
+elseif nargin < 3, res = y./Ax -1; %KL case. y - A*x; %LS case
 elseif nargin < 4, ATres = A.'*res;
 elseif nargin < 5, normA = sqrt(sum(A,1).^2).';
-elseif nargin < 6, Atdual = sum(A,1); 
+elseif nargin < 6, Atdual = sum(A,1)./sqrt(size(A,1)); 
 elseif nargin < 7, t = 1; 
 elseif nargin < 8, Ax = y./(res+1); %KL case. Ax = y-res; %LS case
 end
@@ -32,21 +32,28 @@ dual = @(b) y.'*log(1+b); % - sum(param.epsilon*b);
 % dual = @(b) y(y~=0).'*log(1+b(y~=0)) - sum(param.epsilon*b); % Avoids 0*log(0) = NaN
 
 % -- Dual update --
-% Dual feasible point
-% 1) Dual translation (to fall inside dual feasible set)
-epsilon = max(ATres./Atdual.'); %max(ATres) also works if A is normalized, but is slightly worse.
-theta = res - epsilon*t;
-% 2) Rescale (to fall inside dual function domain)
-theta = theta/max(-min(theta)+1e-6,1);
-
-ATtheta = ATres - epsilon*Atdual.'; %= A.'* theta; Should be zero at coordinates xj ~= 0 and negative otherwise
-
+if exist('precalc','var') && isfield(precalc,'oracle_theta')
+    % Oracle dual point
+    theta = precalc.oracle_theta;
+    ATtheta = precalc.oracle_ATtheta; 
+else
+    % Dual feasible point
+    [theta, ATtheta] = dualUpdateKL(res,ATres,t,Atdual);
+%     % 1) Dual translation (to fall inside dual feasible set)
+%     epsilon = max(ATres./Atdual.'); %max(ATres) also works if A is normalized, but is slightly worse.
+%     theta = res - epsilon*t;
+%     % 2) Rescale (to fall inside dual function domain)
+%     scale = max(-min(theta)+1e-6,1);
+%     theta = theta/scale;
+%     
+%     ATtheta = (ATres - epsilon*Atdual.')/scale; %= A.'* theta; Should be zero at coordinates xj ~= 0 and negative otherwise
+end
 % -- Duality gap --
 gap = primal(Ax) - dual(theta); % gap has to be calculated anyway for GAP_Safe
 gap(gap<=0) = eps;
 
+% -- Strong concavity bound --
 if exist('precalc','var')
-    % -- Strong concavity bound --    
     % Project theta into previous safe sphere
     theta_dist = norm(theta - precalc.theta_old); 
     if (theta_dist > precalc.radius_old)
@@ -57,9 +64,8 @@ if exist('precalc','var')
     if gap < precalc.min_y/2 % && improv_flag 
         denominator = (1 + theta(~precalc.idxy0)).^2 ;
         alpha_star = min((precalc.sqrt_y-sqrt(2*gap)).^2./denominator);
-        precalc.alpha = max(alpha_star, precalc.alpha);    
+        precalc.alpha = max(alpha_star, precalc.alpha);
     end
-
 else
     precalc.alpha = eps; % very low, for security. Bad performance.
 end

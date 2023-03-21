@@ -54,6 +54,10 @@ if isfield(options,'screen_period')
 else
     screen_period = 10; %Screening tests are performed every screen_period iterations
 end
+if isfield(options,'oracle_dual')
+    precalc.oracle_theta = options.oracle_dual;
+    precalc.oracle_ATtheta = S.'*options.oracle_dual;
+end
 
 nObs = size(X,2);
 nFeat = size(X,1);
@@ -241,9 +245,10 @@ for i=2:iterations
     end    
 
     %% Safe screening
-    if mod(i-1,screen_period) == 0
+    if mod(i-2,screen_period) == 0
         % Notation: X - S*A
         % R = X./V % But it is later modified
+        % nnKLGapSafeScreen(y, A, res, ATres, normA, Atdual,t,Ax,precalc)
         [screen_new, precalc, ~] = nnKLGapSafeScreen(X, S, X./V - 1, -gradAll, normS, Stdual,tdual,V,precalc); % could reuse input parameters
 
         S(:,screen_new) = [];
@@ -262,7 +267,7 @@ for i=2:iterations
     % Not executed normally! Compute gap for illustration-purpose only
     if calc_gap
         if mod(i,2)==0 % grad is recalculated only every 2 iterations
-            [~,~,trace] = nnKLGapSafeScreen(X, S, X./V - 1, -gradAll, normS, Stdual,tdual,V); % could reuse input parameters
+            [~,~,trace] = nnKLGapSafeScreen(X, S, X./V - 1, -gradAll, normS, Stdual,tdual,V,precalc); % could reuse input parameters
             output.gap_it(i) = trace.gap;
         else
             output.gap_it(i) = output.gap_it(i-1);

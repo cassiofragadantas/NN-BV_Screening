@@ -45,6 +45,13 @@ if isfield(options,'screen_period')
 else
     screen_period = 10; %Screening tests are performed every screen_period iterations
 end
+if isfield(options,'oracle_dual')
+    precalc.oracle_theta = options.oracle_dual;
+    precalc.oracle_ATtheta = U.'*options.oracle_dual;
+else
+    precalc = [];
+end
+
 
 %[m, N] = size(M); 
 [m,n] = size(U); 
@@ -92,7 +99,7 @@ while eps >= (delta)^2*eps0 && cnt <= maxiter %Maximum number of iterations
     %% Safe screening
     if mod(cnt,screen_period) == 0
         % Notation: M - U*V
-        [screen_new, ~] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,tdual); % could reuse input parameters
+        [screen_new, ~] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,tdual,precalc); % could reuse input parameters
         if any(V(screen_new)~=0)
             UtUV = UtU(:,~screen_new)*V(~screen_new,:); 
         end
@@ -105,7 +112,7 @@ while eps >= (delta)^2*eps0 && cnt <= maxiter %Maximum number of iterations
     % Not executed normally! Compute gap for illustration-purpose only
     if calc_gap
         % Notation: M - U*V
-        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,tdual); % could reuse input parameters
+        [~, trace] = nnGapSafeScreen(M, U, M - U*V, UtM - UtUV, normU, sumU,tdual,precalc); % could reuse input parameters
         output.gap_it(cnt) = trace.gap;
     end
     
