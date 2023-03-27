@@ -22,7 +22,7 @@ end
 % Screening initialization (if activated)
 if screen_period || calc_gap % Safe screening activated: initializations
     normA = sqrt(sum(A.^2)).';
-    sumA = (A.'*tdual).';    
+    Atdual = (A.'*tdual).';    
 end
 
 % Output variables
@@ -55,17 +55,17 @@ while ~converged && k <= maxiter %Maximum number of iterations
 
     % Not executed normally! Compute gap for illustration-purpose only
     if calc_gap
-        [~, trace] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, sumA,tdual,precalc);
+        [~, trace] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, Atdual,tdual,precalc);
         output.gap_it(k) = trace.gap;
     end
 
     % -- Screening --
     if mod(k,screen_period) == 0
-        [screen_vec, ~] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, sumA,tdual,precalc);
+        [screen_vec, ~] = nnGapSafeScreen(y, A, y-Ax, ATy - ATAx, normA, Atdual,tdual,precalc);
        
         A(:,screen_vec) = []; 
         x(screen_vec) = [];
-        sumA(screen_vec) = [];
+        Atdual(screen_vec) = [];
         normA(screen_vec) = [];
         rejected_coords(~rejected_coords) = screen_vec;
         output.nb_screen_it(k) = sum(rejected_coords);

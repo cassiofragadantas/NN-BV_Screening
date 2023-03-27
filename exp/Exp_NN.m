@@ -11,16 +11,16 @@ exp_type = 'synthetic'; % Options: 'synthetic', or some real dataset
 
 % Dimensions (only for synthetic experiments, irrelevant otherwise)
 m = 1000; %2000
-n = 1000; %500, 1000, 2000, 5000
+n = 2000; %500, 1000, 2000, 5000
 density_x = 0.1;
 nb_iter = 30000; %maximum number of iterations
-screen_period = 50;
+screen_period = 10;
 
 % Solver selection (set to false to skip) 
 MM = false; CoD = true; ActiveSet = true;
 
 % Noise (type and level)
-noise_type = 'gaussian_snr'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
+noise_type = 'none'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
 noise_val = 0; % snr or noise standard deviation
 
 % Generate data
