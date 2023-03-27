@@ -152,7 +152,7 @@ if ~exist('omitResults','var')
     plot(outPGD_screenOracle.timeIt,outPGD_screenOracle.screenIt,'-.'), xlim([0 outPGD.timeIt(end)]), ylim([0 1])    
     % Settings    
     ylabel('Screening ratio [\%]'), xlabel('Time [s]'), grid on
-    legend({'Oracle' 'Screened' }, 'Location', 'southeast')
+    legend({'Oracle (\%)' 'Screened (\%)', 'Screened (oracle dual)' }, 'Location', 'southeast')
     
     savefig([filename '.fig'])
     end
