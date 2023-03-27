@@ -261,6 +261,7 @@ for i=2:iterations
 
         output.nb_screen_it(i) = sum(screen_vec); 
         output.alpha_it(i) = precalc.alpha;
+        if isfield(options,'oracle_dual'), precalc.oracle_ATtheta(screen_new) = []; end        
     end
     output.time_it(i) = toc(startTime);
 

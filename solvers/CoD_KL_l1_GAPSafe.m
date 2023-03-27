@@ -208,6 +208,7 @@ while (stop_crit > param.TOL) && (k < param.MAX_ITER)
 
         trace.nb_screen_it(k) = sum(rejected_coords); 
         trace.alpha_it(k) = precalc.alpha;
+        if isfield(options,'oracle_dual'), precalc.oracle_ATtheta(screen_new) = []; end        
     end
 
     x_old = x + 0; % +0 avoids x_old to be modified within the MEX function

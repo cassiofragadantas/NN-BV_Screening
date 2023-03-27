@@ -39,14 +39,6 @@ if exist('precalc','var') && isfield(precalc,'oracle_theta')
 else
     % Dual feasible point
     [theta, ATtheta] = dualUpdateKL(res,ATres,t,Atdual);
-%     % 1) Dual translation (to fall inside dual feasible set)
-%     epsilon = max(ATres./Atdual.'); %max(ATres) also works if A is normalized, but is slightly worse.
-%     theta = res - epsilon*t;
-%     % 2) Rescale (to fall inside dual function domain)
-%     scale = max(-min(theta)+1e-6,1);
-%     theta = theta/scale;
-%     
-%     ATtheta = (ATres - epsilon*Atdual.')/scale; %= A.'* theta; Should be zero at coordinates xj ~= 0 and negative otherwise
 end
 % -- Duality gap --
 gap = primal(Ax) - dual(theta); % gap has to be calculated anyway for GAP_Safe
@@ -64,7 +56,11 @@ if exist('precalc','var')
     if gap < precalc.min_y/2 % && improv_flag 
         denominator = (1 + theta(~precalc.idxy0)).^2 ;
         alpha_star = min((precalc.sqrt_y-sqrt(2*gap)).^2./denominator);
-        precalc.alpha = max(alpha_star, precalc.alpha);
+        if alpha_star > precalc.alpha % update alpha if improved
+            precalc.alpha = alpha_star;
+            precalc.theta_old = theta;
+            precalc.radius_old = sqrt(2*gap/precalc.alpha);
+        end
     end
 else
     precalc.alpha = eps; % very low, for security. Bad performance.
@@ -73,9 +69,6 @@ end
 % -- Screening --
 radius = sqrt(2*gap/precalc.alpha);
 screen_vec = (ATtheta + radius*normA < 0);
-
-precalc.theta_old = theta;
-precalc.radius_old = radius;
 
 % Trace variables
 trace.gap = gap;
