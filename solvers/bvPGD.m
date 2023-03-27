@@ -64,9 +64,6 @@ gap = inf;
 converged = false;  % Stopping criterion:
 gap_tol = 1e-6;     % used if (stop_crit == 'gap')
 delta_tol = 1e-19;  % used otherwise
-% Test: dual extrapolation
-U = []; % for dual extrapolation
-AtU = zeros(size(x));
 
 % Cost functions (primal and dual)
 % Euclidean distance
@@ -126,21 +123,6 @@ while ~converged && k <= maxiter
         if isfield(options,'oracle_dual')
             theta = options.oracle_dual;
             ATtheta = options.oracle_ATtheta;
-        elseif false %screen_period % Test: dual extrapolation (doesn't work)
-            if k < 5
-                U = [U res];
-                AtU = [AtU -grad];
-                theta = res;
-                ATtheta = -grad;
-            else
-                U = [U(:,2:end) res];
-                AtU = [AtU(:,2:end) -grad];
-                UtU = U.'*U;
-                inv_UtT = ones(5,1) \ UtU;
-                c = inv_UtT / sum(inv_UtT);
-                theta = U*c.';
-                ATtheta = AtU*c.';
-            end
         else
             theta =  res; % simply the (generalized) residual
             ATtheta = -grad;
@@ -177,8 +159,6 @@ while ~converged && k <= maxiter
         u(screen_vec_l | screen_vec_u) = [];
         saturated_coords(~saturated_coords) = screen_vec_u - screen_vec_l;          
         if isfield(options,'oracle_dual'), options.oracle_ATtheta(screen_vec_l | screen_vec_u) = []; end
-        % Test: dual extrapolation
-        if ~isfield(options,'oracle_dual'), AtU(screen_vec_l | screen_vec_u,:) = []; end
     end
     if screen_period, output.screenIt(k) = sum(abs(saturated_coords))/n; end
 
