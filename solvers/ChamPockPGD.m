@@ -1,4 +1,4 @@
-function [x, output] = ChamPockPGD(y,A,l,u,x,maxiter,calc_gap,screen_period,options)
+function [x, output] = ChamPockPGD(y,A,l,u,x,maxiter,L,calc_gap,screen_period,options)
 % Primal-dual Chambolle-Pock algorithm for the Bounded-Variable Linear 
 % Regression problem. 
 %
@@ -15,6 +15,7 @@ function [x, output] = ChamPockPGD(y,A,l,u,x,maxiter,calc_gap,screen_period,opti
 % Optional inputs (default values):
 % - x: (n x 1) initialization vector (all-zeros vector )
 % - maxiter: maximum allowed number of iterations (1e6)
+% - L: operator norm of matrix A  (norm(A))
 % - calc_gap: flag defining if the duality gap is to be computed (false)
 % - screen_period: interval between screening tests (0, i.e. no screening)
 %
@@ -39,9 +40,10 @@ function [x, output] = ChamPockPGD(y,A,l,u,x,maxiter,calc_gap,screen_period,opti
 if nargin < 4, error('ChamPockPGD: Inputs {y, A, l, u} are mandatory'); end
 if nargin < 5, x = zeros(size(A,2),1); end
 if nargin < 6, maxiter = 1e6; end
-if nargin < 7, calc_gap = false; end
-if nargin < 8, screen_period = 0; end
-if nargin < 9, options = []; end
+if nargin < 7, L = norm(A); end
+if nargin < 8, calc_gap = false; end
+if nargin < 9, screen_period = 0; end
+if nargin < 10, options = []; end
 if isfield(options,'oracle_dual')
     options.oracle_ATtheta = A.'*options.oracle_dual;
 end
@@ -81,7 +83,6 @@ delta_tol = 1e-19;  % used otherwise
 
 % Solver parameters
 alpha = 1;
-L = norm(A);
 % sigma = 1/L; tau = .9/L;
 sigma = .01; tau = .9/(sigma*L^2);
 % tau = 1; sigma = .9/(tau*L^2);
