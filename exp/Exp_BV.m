@@ -17,7 +17,7 @@ screen_period = 10;
 normalizeA = true;
 
 % Noise (type and level)
-noise_type = 'none'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
+noise_type = 'gaussian_std'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
 %Add noise
 if strcmp(noise_type,'gaussian_std')
     sigma = 0.1; %noise standard deviation
@@ -26,8 +26,7 @@ elseif strcmp(noise_type,'gaussian_snr')
 end
 
 %% Initializations
-nb_iter = 1e7; %maximum number of iterations
-x0 = abs(randn(n,1)); %random initialization for solution vector x
+nb_iter = 1e6; %maximum number of iterations
 
 % Data generation (A, y)
 if strcmp(exp_type,'synthetic')
@@ -79,18 +78,26 @@ else % no noise
     y = y_orig;
 end
 
+x0 = abs(randn(n,1)); %random initialization for solution vector x
 mu = 2/norm(A).^2; % fixed stepsize
 calc_gap = true;
 
 %% Find x such that y=Ax, given A and y
-% profile on
 
 %%%%%%%%%%%% Projected gradient (PGD) algorithm %%%%%%%%%%%%
 % profile on
 
-fprintf('\n======= Coord. Descent algorithm =======\n')
+% fprintf('\n======= Primal-dual algorithm =======\n')
+% [xPGD, outPGD]= ChamPockPGD(y,A,l,u,x0,nb_iter,calc_gap);
+% [xPGD_screen, outPGD_screen]= ChamPockPGD(y,A,l,u,x0,nb_iter,calc_gap,screen_period);
+% options.oracle_dual = y - A*xPGD_screen; % Oracle dual point
+% [xPGD_screenOracle, outPGD_screenOracle]= ChamPockPGD(y,A,l,u,x0,nb_iter,calc_gap,screen_period,options);
+
+fprintf('\n======= Prox. Grad. algorithm =======\n')
 [xPGD, outPGD]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap);
 [xPGD_screen, outPGD_screen]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap,screen_period);
+options.oracle_dual = y - A*xPGD_screen; % Oracle dual point
+[xPGD_screenOracle, outPGD_screenOracle]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap,screen_period,options);
 
 % Assert screening did not affect algorithm convergence point
 assert(norm(xPGD - xPGD_screen)<=1e-5*norm(xPGD_screen), ...
@@ -122,12 +129,15 @@ if ~exist('omitResults','var')
     subplot(2,1,1)
     % Baseline
     semilogy(outPGD.timeIt(idx),outPGD.gapIt(idx),'k'),  hold on,
-    set(gca,'ColorOrderIndex',1)
     % Screening
+    set(gca,'ColorOrderIndex',1)    
     semilogy(outPGD_screen.timeIt(idx),outPGD_screen.gapIt(idx)), 
+    % Screening (oracle dual)
+    set(gca,'ColorOrderIndex',1)    
+    semilogy(outPGD_screenOracle.timeIt,outPGD_screenOracle.gapIt,'-.'), 
     % Settings
     ylabel('Duality gap'), xlabel('Time [s]'), grid on
-    legend({'Prox. Grad. (baseline)', 'Prox. Grad + Screening', })
+    legend({'Prox. Grad. (baseline)', 'Prox. Grad + Screening', 'Prox. Grad + Screening (oracle dual)' })
     
     %%%% Screening ratio vs. Time %%%        
     subplot(2,1,2), hold on
@@ -137,6 +147,9 @@ if ~exist('omitResults','var')
     % Screening
     set(gca,'ColorOrderIndex',1)
     plot(outPGD_screen.timeIt(idx),outPGD_screen.screenIt(idx)), xlim([0 outPGD.timeIt(end)]), ylim([0 1])
+    % Screening (oracle dual)
+    set(gca,'ColorOrderIndex',1)
+    plot(outPGD_screenOracle.timeIt,outPGD_screenOracle.screenIt,'-.'), xlim([0 outPGD.timeIt(end)]), ylim([0 1])    
     % Settings    
     ylabel('Screening ratio [\%]'), xlabel('Time [s]'), grid on
     legend({'Oracle' 'Screened' }, 'Location', 'southeast')
