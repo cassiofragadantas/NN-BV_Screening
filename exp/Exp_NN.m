@@ -12,12 +12,14 @@ exp_type = 'synthetic'; % Options: 'synthetic', or some real dataset
 % Dimensions (only for synthetic experiments, irrelevant otherwise)
 m = 1000; %2000
 n = 2000; %500, 1000, 2000, 5000
-density_x = 0.1;
+density_x = 0.05;
 nb_iter = 30000; %maximum number of iterations
 screen_period = 10;
 
 % Solver selection (set to false to skip) 
 MM = false; CoD = true; ActiveSet = true;
+
+oracle_dual = true;
 
 % Noise (type and level)
 noise_type = 'none'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
@@ -55,13 +57,15 @@ if MM
     time1e6MM_screen = outMM_screen.time_it(find(outMM_screentmp.gap_it<1e-6,1));
     print_time('MM',time1e6MM,time1e6MM_screen, true)
 
-    % Re-run with oracle dual point
-    fprintf('\n... re-running solver+screening with oracle dual point ...\n')
-    res = (y - A*xMM_screen);
-    options.oracle_dual = res; % - max((A.'*res)./(A.'*tdual))*tdual;
-    [~, outMM_screenOracletmp]= nnMM(y,A,x0,nb_iter,true,screen_period,tdual,options);
-    options.calc_gap = false;    
-    [~, outMM_screenOracle]= nnMM(y,A,x0,nb_iter,false,screen_period,tdual,options);    
+    if oracle_dual
+        % Re-run with oracle dual point
+        fprintf('\n... re-running solver+screening with oracle dual point ...\n')
+        res = (y - A*xMM_screen);
+        options.oracle_dual = res; % - max((A.'*res)./(A.'*tdual))*tdual;
+        [~, outMM_screenOracletmp]= nnMM(y,A,x0,nb_iter,true,screen_period,tdual,options);
+        options.calc_gap = false;    
+        [~, outMM_screenOracle]= nnMM(y,A,x0,nb_iter,false,screen_period,tdual,options);    
+    end
 end
 
 %%%%%%%%%%%% CoD algorithm %%%%%%%%%%%%
@@ -72,6 +76,7 @@ if CoD
     options.tdual = tdual;
 
     % Run solvers
+    options.calc_gap = false;    
     tic, [xHALS, outHALS]= nnlsHALSupdt(y,A,x0,nb_iter); timeHALS = toc;
     tic, [xHALS_screen, outHALS_screen] = nnlsHALS_Screen(y,A,x0,nb_iter,options); timeHALS_Screen = toc;
 
@@ -90,13 +95,15 @@ if CoD
     time1e6HALS_screen = outHALS_screen.time_it(find(outHALS_screentmp.gap_it<1e-6,1));
     print_time('CoD',time1e6HALS,time1e6HALS_screen, true)
 
-    % Re-run with oracle dual point
-    fprintf('\n... re-running solver+screening with oracle dual point ...\n')
-    res = (y - A*xHALS);
-    options.oracle_dual = res; % - max((A.'*res)./(A.'*tdual))*tdual;
-    [~, outHALS_screenOracletmp] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
-    options.calc_gap = false;    
-    [~, outHALS_screenOracle] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
+    if oracle_dual
+        % Re-run with oracle dual point
+        fprintf('\n... re-running solver+screening with oracle dual point ...\n')
+        res = (y - A*xHALS);
+        options.oracle_dual = res; % - max((A.'*res)./(A.'*tdual))*tdual;
+        [~, outHALS_screenOracletmp] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
+        options.calc_gap = false;    
+        [~, outHALS_screenOracle] = nnlsHALS_Screen(y,A,x0,nb_iter,options);
+    end
 end
 
 %%%%%%%%%%%% Active Set algorithm %%%%%%%%%%%%
@@ -107,6 +114,7 @@ if ActiveSet
     options.tdual = tdual;
 
     % Run solvers
+    options.calc_gap = false;    
     tic, [xAS,~,~,~,outAS,~]  = lsqnonneg(A,y); timeAS = toc; % x0 is all-zeros
     % profile on
     tic, [xAS_screen,~,~,~,outAS_screen,~] = lsqnonneg_Screen(A,y,options); timeAS_Screen = toc;
@@ -127,13 +135,15 @@ if ActiveSet
     time1e6AS_screen = outAS_screen.time_it(find(outAS_screentmp.gap_it<1e-6,1));
     print_time('Active Set',time1e6AS,time1e6AS_screen, true)
 
-    % Re-run with oracle dual point
-    fprintf('\n... re-running solver+screening with oracle dual point ...\n')
-    res = (y - A*xAS);
-    options.oracle_dual = res; % - max((A.'*res)./(A.'*tdual))*tdual;
-    [~,~,~,~,outAS_screenOracletmp,~] = lsqnonneg_Screen(A,y,options);
-    options.calc_gap = false;
-    [~,~,~,~,outAS_screenOracle,~] = lsqnonneg_Screen(A,y,options);
+    if oracle_dual
+        % Re-run with oracle dual point
+        fprintf('\n... re-running solver+screening with oracle dual point ...\n')
+        res = (y - A*xAS);
+        options.oracle_dual = res; % - max((A.'*res)./(A.'*tdual))*tdual;
+        [~,~,~,~,outAS_screenOracletmp,~] = lsqnonneg_Screen(A,y,options);
+        options.calc_gap = false;
+        [~,~,~,~,outAS_screenOracle,~] = lsqnonneg_Screen(A,y,options);
+    end
 end
 
 %% Results
@@ -150,7 +160,7 @@ if ~exist('omitResults','var')
 
     if CoD
         [leg, leg2, leg3] = plot_results('Coord. Descent', n, ...
-                1, outHALS, outHALS_screen, outHALS_screenOracle, outHALStmp, outHALS_screentmp, outHALS_screenOracletmp, screen_period);
+                1, outHALS, outHALS_screen, outHALS_screenOracle, outHALStmp, outHALS_screentmp, outHALS_screenOracletmp, screen_period, oracle_dual);
         legendvec = [legendvec leg{:}]; legendvec2 = [legendvec2 leg2{:}]; legendvec3 = [legendvec3 leg3{:}];
         nb_zeros = sum(xHALS<1e-10); % Number of zeros in the solution (baseline)
         max_time = max(max_time,outHALS.time_it(end));
@@ -167,7 +177,7 @@ if ~exist('omitResults','var')
     
     if ActiveSet
         [leg, leg2, leg3] = plot_results('Active Set', n, ...
-                2, outAS, outAS_screen, outAS_screenOracle, outAStmp, outAS_screentmp, outAS_screenOracletmp, screen_period);
+                2, outAS, outAS_screen, outAS_screenOracle, outAStmp, outAS_screentmp, outAS_screenOracletmp, screen_period, oracle_dual);
         legendvec = [legendvec leg{:}]; legendvec2 = [legendvec2 leg2{:}]; legendvec3 = [legendvec3 leg3{:}];
         if ~exist('nb_zeros','var'),nb_zeros = sum(xAS<1e-10); end
         max_time = max(max_time,outAS.time_it(end));
@@ -176,7 +186,7 @@ if ~exist('omitResults','var')
 
     if MM
         [leg, leg2, leg3] = plot_results('Multiplicative', n, ...
-                3, outMM, outMM_screen, outMM_screenOracle, outMMtmp, outMM_screentmp, outMM_screenOracletmp, screen_period);
+                3, outMM, outMM_screen, outMM_screenOracle, outMMtmp, outMM_screentmp, outMM_screenOracletmp, screen_period, oracle_dual);
         legendvec = [legendvec leg{:}]; legendvec2 = [legendvec2 leg2{:}]; legendvec3 = [legendvec3 leg3{:}];
         if ~exist('nb_zeros','var'),nb_zeros = sum(xMM<1e-10); end
         max_time = max(max_time,outMM.time_it(end));
@@ -222,7 +232,7 @@ fprintf([solver_name ' speedup     : %.4s times \n'], time_base/time_screen)
 end
 
 function [legendvec, legendvec2, legendvec3] = plot_results(solver_name, n, ...
-            color, out, out_screen, out_oracle, out_gap, out_screen_gap, out_oracle_gap, screen_period)
+            color, out, out_screen, out_oracle, out_gap, out_screen_gap, out_oracle_gap, screen_period, oracle_dual)
 
     legendvec = {}; legendvec2 = {}; legendvec3 = {};
 
@@ -237,17 +247,21 @@ function [legendvec, legendvec2, legendvec3] = plot_results(solver_name, n, ...
     semilogy(out_screen.time_it,out_screen_gap.gap_it)
     legendvec{end+1} = [solver_name ' + Screening'];
     % Screening Oracle
-    set(gca,'ColorOrderIndex',color)
-    semilogy(out_oracle.time_it,out_oracle_gap.gap_it,'-.')
-    legendvec{end+1} = [solver_name ' + Screening (oracle)'];    
+    if oracle_dual
+        set(gca,'ColorOrderIndex',color)
+        semilogy(out_oracle.time_it,out_oracle_gap.gap_it,'-.')
+        legendvec{end+1} = [solver_name ' + Screening (oracle)'];
+    end
     %%%% Screening ratio vs. Time %%%
     subplot(2,1,2), hold on
     set(gca,'ColorOrderIndex',color)
     plot(out_screen.time_it(screen_period:screen_period:end),out_screen.nb_screen_it(screen_period:screen_period:end)/n),
     legendvec2{end+1} = [solver_name ' + Screening'];
-    set(gca,'ColorOrderIndex',color)
-    plot(out_oracle.time_it(screen_period:screen_period:end),out_oracle.nb_screen_it(screen_period:screen_period:end)/n,'-.'),
-    legendvec2{end+1} = [solver_name ' + Screening (oracle)'];
+    if oracle_dual
+        set(gca,'ColorOrderIndex',color)
+        plot(out_oracle.time_it(screen_period:screen_period:end),out_oracle.nb_screen_it(screen_period:screen_period:end)/n,'-.'),
+        legendvec2{end+1} = [solver_name ' + Screening (oracle)'];
+    end
 
     %%%% Screening ratio vs. Iteration number %%%
     figure(1), hold on,
@@ -255,9 +269,11 @@ function [legendvec, legendvec2, legendvec3] = plot_results(solver_name, n, ...
     semilogy(screen_period:screen_period:length(out_screen.nb_screen_it), ...
              out_screen.nb_screen_it(screen_period:screen_period:end)/n)
     legendvec3{end+1} = [solver_name ' + Screening'];
-    set(gca,'ColorOrderIndex',color)
-    semilogy(screen_period:screen_period:length(out_oracle.nb_screen_it), ...
-             out_oracle.nb_screen_it(screen_period:screen_period:end)/n, '-.')
-    legendvec3{end+1} = [solver_name ' + Screening (oracle)'];
+    if oracle_dual
+        set(gca,'ColorOrderIndex',color)
+        semilogy(screen_period:screen_period:length(out_oracle.nb_screen_it), ...
+                 out_oracle.nb_screen_it(screen_period:screen_period:end)/n, '-.')
+        legendvec3{end+1} = [solver_name ' + Screening (oracle)'];
+    end
 
 end
