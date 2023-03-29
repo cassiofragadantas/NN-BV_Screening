@@ -80,7 +80,7 @@ else % no noise
 end
 
 x0 = abs(randn(n,1)); %random initialization for solution vector x
-L = norm(A);
+L = norm(full(A));
 mu = 2/L.^2; % fixed stepsize
 calc_gap = true;
 
@@ -90,11 +90,12 @@ calc_gap = true;
 % profile on
 
 % fprintf('\n======= Primal-dual algorithm =======\n')
+% x0 = zeros(n,1); %randn(n,1); x0 = x0/norm(x0); %random initialization for solution vector x
 % [xPGD, outPGD]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap);
 % [xPGD_screen, outPGD_screen]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period);
 % if oracle_dual
-%     options.oracle_dual = y - A*xPGD_screen; % Oracle dual point
-%     [xPGD_screenOracle, outPGD_screenOracle]= ChamPockPGD(y,A,l,u,x0,nb_iter,calc_gap,screen_period,options);
+%     options.oracle_dual = outPGD_screen.theta; % Oracle dual point
+%     [xPGD_screenOracle, outPGD_screenOracle]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period,options);
 % end
 
 fprintf('\n======= Prox. Grad. algorithm =======\n')
@@ -122,6 +123,11 @@ if ~exist('omitResults','var')
     fprintf('PG + Screening : %.2f s\n', outPGD_screen.timeIt(end))
     fprintf('PG speedup : %.2f times \n\n', outPGD.timeIt(end)/outPGD_screen.timeIt(end))
     
+    if oracle_dual
+        fprintf('\nPG + Screening (oracle dual) : %.2f s\n', outPGD_screenOracle.timeIt(end))
+        fprintf('PG speedup : %.2f times \n\n', outPGD.timeIt(end)/outPGD_screenOracle.timeIt(end))
+    end
+
     if calc_gap
     % Plot properties setting
     set(0,'DefaultTextInterpreter','latex'), set(0,'DefaultLegendInterpreter','latex');
@@ -143,7 +149,7 @@ if ~exist('omitResults','var')
     if oracle_dual
         set(gca,'ColorOrderIndex',1)    
         semilogy(outPGD_screenOracle.timeIt,outPGD_screenOracle.gapIt,'-.'),
-        legend_arr{end+1} = 'Prox. Grad + Screening (oracle dual)';
+        legend_arr{end+1} = 'Prox. Grad + Screening ($\theta^\star$)';
     end
     % Settings
     ylabel('Duality gap'), xlabel('Time [s]'), grid on
@@ -157,15 +163,15 @@ if ~exist('omitResults','var')
     % Screening
     set(gca,'ColorOrderIndex',1)
     plot(outPGD_screen.timeIt(idx),outPGD_screen.screenIt(idx)), xlim([0 outPGD.timeIt(end)]), ylim([0 1])
-    legend_arr = {'Oracle (\%)' 'Screened (\%)'};
+    legend_arr = {'Oracle' 'Screened'};
     % Screening (oracle dual)
     if oracle_dual
         set(gca,'ColorOrderIndex',1)
         plot(outPGD_screenOracle.timeIt,outPGD_screenOracle.screenIt,'-.'), xlim([0 outPGD.timeIt(end)]), ylim([0 1])    
-        legend_arr{end+1} = 'Screened (oracle dual)';
+        legend_arr{end+1} = 'Screened ($\theta^\star$)';
     end
     % Settings    
-    ylabel('Screening ratio [\%]'), xlabel('Time [s]'), grid on
+    ylabel('Screening ratio'), xlabel('Time [s]'), grid on
     legend(legend_arr, 'Location', 'southeast')
     
     savefig([filename '.fig'])
