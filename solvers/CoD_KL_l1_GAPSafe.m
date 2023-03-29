@@ -118,7 +118,7 @@ radius = inf; theta = 0;
 % Screening initialization
 assert(isfield(param,'tdual'),'tdual should be provided');
 tdual = param.tdual;
-normA = sum(A.^2,1).';
+normA = sqrt(sum(A.^2,1)).';
 Atdual = tdual.'*A;
 precalc.min_y = min(y(~idx_y0));
 precalc.sqrt_y = sqrt(y(~idx_y0));

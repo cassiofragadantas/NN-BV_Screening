@@ -172,6 +172,7 @@ output.costIt = output.costIt(1:k-1);
 output.timeIt = output.timeIt(1:k-1);
 if calc_gap, output.gapIt = output.gapIt(1:k-1); end
 if screen_period, output.screenIt = output.screenIt(1:k-1); end
+if calc_gap, output.theta = theta; end
 
 % zero-padding solution
 if screen_period

@@ -150,8 +150,10 @@ while ~converged && k <= maxiter
         screen_vec_l = (ATtheta + radius*normA < 0);
         screen_vec_u = (ATtheta - radius*normA > 0);
 
-        y = y - A(:,screen_vec_l)*l(screen_vec_l) - A(:,screen_vec_u)*u(screen_vec_u);
-        Ax = Ax - A(:,screen_vec_l)*x(screen_vec_l) - A(:,screen_vec_u)*x(screen_vec_u);    
+        if any(screen_vec_u | screen_vec_l)
+            y = y - A(:,screen_vec_l)*l(screen_vec_l) - A(:,screen_vec_u)*u(screen_vec_u);
+            Ax = Ax - A(:,screen_vec_l)*x(screen_vec_l) - A(:,screen_vec_u)*x(screen_vec_u);
+        end
         A(:,screen_vec_l | screen_vec_u) = [];    
         x(screen_vec_l | screen_vec_u) = []; 
         normA(screen_vec_l | screen_vec_u) = [];
