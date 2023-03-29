@@ -62,7 +62,7 @@ if calc_gap
     output.gap_it = zeros(1,maxiter); 
 end
 
-delta = 1e-9; % Stopping condition depending on evolution of the iterate V: 
+delta = 1e-10; % Stopping condition depending on evolution of the iterate V: 
               % Stop if ||V^{k}-V^{k+1}||_F <= delta * ||V^{0}-V^{1}||_F 
               % where V^{k} is the kth iterate. 
 eps0 = 0; cnt = 1; eps = 1; 
