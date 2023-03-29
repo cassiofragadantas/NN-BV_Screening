@@ -22,8 +22,8 @@ MM = false; CoD = true; ActiveSet = true;
 oracle_dual = true;
 
 % Noise (type and level)
-noise_type = 'none'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
-noise_val = 0; % snr or noise standard deviation
+noise_type = 'gaussian_std'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
+noise_val = 1; % snr or noise standard deviation
 
 % Generate data
 [A,y,n,tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);

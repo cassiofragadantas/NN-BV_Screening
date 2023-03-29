@@ -21,7 +21,7 @@ oracle_dual = false; % Run screening with oracle dual point
 noise_type = 'gaussian_std'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
 %Add noise
 if strcmp(noise_type,'gaussian_std')
-    sigma = 0.1; %noise standard deviation
+    sigma = 1; %noise standard deviation
 elseif strcmp(noise_type,'gaussian_snr')
     snr_db = 10;
 end
@@ -34,12 +34,12 @@ if strcmp(exp_type,'synthetic')
     A = abs(randn(m,n)); % gaussian random A
     if normalizeA, A = A./sqrt(sum(A.^2)); end  % unit-norm columns
     % random y
-    y_orig = randn(m,1);
-    y_orig = y_orig/norm(y_orig);
+%     y_orig = randn(m,1);
+%     y_orig = y_orig/norm(y_orig);
     % y as a combination of columns of A
-%     density_x = 0.05;
-%     x_golden = sprand(n,1,density_x); 
-%     y_orig = A*x_golden;        
+    density_x = 0.05;
+    x_golden = sprand(n,1,density_x); 
+    y_orig = A*x_golden;        
     % Lower and Upper bounds (constraints): l <= x <= u 
     l = 0*ones(n,1);
     u = 1*ones(n,1);
