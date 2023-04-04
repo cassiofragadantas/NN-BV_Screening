@@ -94,11 +94,11 @@ calc_gap = true;
 if strcmp(solver,'PD')
     fprintf('\n======= Primal-dual algorithm =======\n')
     x0 = zeros(n,1); %randn(n,1); x0 = x0/norm(x0); %random initialization for solution vector x
-    [xPGD, outPGD]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap);
-    [xPGD_screen, outPGD_screen]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period);
+    [xPGD, outPGD]= bvChamPockPD(y,A,l,u,x0,nb_iter,L,calc_gap);
+    [xPGD_screen, outPGD_screen]= bvChamPockPD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period);
     if oracle_dual
         options.oracle_dual = outPGD_screen.theta; % Oracle dual point
-        [xPGD_screenOracle, outPGD_screenOracle]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period,options);
+        [xPGD_screenOracle, outPGD_screenOracle]= bvChamPockPD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period,options);
     end
 elseif strcmp(solver,'PG')
     fprintf('\n======= Prox. Grad. algorithm =======\n')

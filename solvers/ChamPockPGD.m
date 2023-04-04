@@ -1,4 +1,4 @@
-function [x, output] = ChamPockPGD(y,A,l,u,x,maxiter,L,calc_gap,screen_period,options)
+function [x, output] = bvChamPockPD(y,A,l,u,x,maxiter,L,calc_gap,screen_period,options)
 % Primal-dual Chambolle-Pock algorithm for the Bounded-Variable Linear 
 % Regression problem. 
 %
@@ -37,7 +37,7 @@ function [x, output] = ChamPockPGD(y,A,l,u,x,maxiter,L,calc_gap,screen_period,op
 
 
 % Default input variables
-if nargin < 4, error('ChamPockPGD: Inputs {y, A, l, u} are mandatory'); end
+if nargin < 4, error('bvChamPockPD: Inputs {y, A, l, u} are mandatory'); end
 if nargin < 5, x = zeros(size(A,2),1); end
 if nargin < 6, maxiter = 1e6; end
 if nargin < 7, L = norm(A); end
