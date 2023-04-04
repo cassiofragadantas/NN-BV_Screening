@@ -15,7 +15,9 @@ m = 1000;
 n = 500;
 screen_period = 10;
 normalizeA = true;
-oracle_dual = false; % Run screening with oracle dual point
+oracle_dual = true; % Run screening with oracle dual point
+
+solver = 'PG'; % 'PD' for primal-dual solver. 'PG' for proximal gradient
 
 % Noise (type and level)
 noise_type = 'gaussian_std'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
@@ -89,21 +91,25 @@ calc_gap = true;
 %%%%%%%%%%%% Projected gradient (PGD) algorithm %%%%%%%%%%%%
 % profile on
 
-% fprintf('\n======= Primal-dual algorithm =======\n')
-% x0 = zeros(n,1); %randn(n,1); x0 = x0/norm(x0); %random initialization for solution vector x
-% [xPGD, outPGD]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap);
-% [xPGD_screen, outPGD_screen]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period);
-% if oracle_dual
-%     options.oracle_dual = outPGD_screen.theta; % Oracle dual point
-%     [xPGD_screenOracle, outPGD_screenOracle]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period,options);
-% end
-
-fprintf('\n======= Prox. Grad. algorithm =======\n')
-[xPGD, outPGD]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap);
-[xPGD_screen, outPGD_screen]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap,screen_period);
-if oracle_dual
-    options.oracle_dual = y - A*xPGD_screen; % Oracle dual point
-    [xPGD_screenOracle, outPGD_screenOracle]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap,screen_period,options);
+if strcmp(solver,'PD')
+    fprintf('\n======= Primal-dual algorithm =======\n')
+    x0 = zeros(n,1); %randn(n,1); x0 = x0/norm(x0); %random initialization for solution vector x
+    [xPGD, outPGD]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap);
+    [xPGD_screen, outPGD_screen]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period);
+    if oracle_dual
+        options.oracle_dual = outPGD_screen.theta; % Oracle dual point
+        [xPGD_screenOracle, outPGD_screenOracle]= ChamPockPGD(y,A,l,u,x0,nb_iter,L,calc_gap,screen_period,options);
+    end
+elseif strcmp(solver,'PG')
+    fprintf('\n======= Prox. Grad. algorithm =======\n')
+    [xPGD, outPGD]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap);
+    [xPGD_screen, outPGD_screen]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap,screen_period);
+    if oracle_dual
+        options.oracle_dual = y - A*xPGD_screen; % Oracle dual point
+        [xPGD_screenOracle, outPGD_screenOracle]= bvPGD(y,A,l,u,x0,mu,nb_iter,calc_gap,screen_period,options);
+    end
+else
+    error('Solver not implemented. Choose either PG or PD solvers.')
 end
 
 % Assert screening did not affect algorithm convergence point
@@ -119,13 +125,13 @@ filename = ['new_Exp_BV_' exp_type '_m' num2str(m) 'n' num2str(n) ...
         
 if ~exist('omitResults','var')
     %%%% Show times %%%%
-    fprintf('PG algorithm : %.2f s\n', outPGD.timeIt(end))
-    fprintf('PG + Screening : %.2f s\n', outPGD_screen.timeIt(end))
-    fprintf('PG speedup : %.2f times \n\n', outPGD.timeIt(end)/outPGD_screen.timeIt(end))
+    fprintf([solver ' algorithm : %.2f s\n'], outPGD.timeIt(end))
+    fprintf([solver ' + Screening : %.2f s\n'], outPGD_screen.timeIt(end))
+    fprintf([solver ' speedup : %.2f times \n\n'], outPGD.timeIt(end)/outPGD_screen.timeIt(end))
     
     if oracle_dual
-        fprintf('\nPG + Screening (oracle dual) : %.2f s\n', outPGD_screenOracle.timeIt(end))
-        fprintf('PG speedup : %.2f times \n\n', outPGD.timeIt(end)/outPGD_screenOracle.timeIt(end))
+        fprintf(['\n' solver ' + Screening (oracle dual) : %.2f s\n'], outPGD_screenOracle.timeIt(end))
+        fprintf([solver ' speedup : %.2f times \n\n'], outPGD.timeIt(end)/outPGD_screenOracle.timeIt(end))
     end
 
     if calc_gap
@@ -144,12 +150,12 @@ if ~exist('omitResults','var')
     % Screening
     set(gca,'ColorOrderIndex',1)    
     semilogy(outPGD_screen.timeIt(idx),outPGD_screen.gapIt(idx)),
-    legend_arr = {'Prox. Grad. (baseline)', 'Prox. Grad + Screening'};
+    legend_arr = {[solver ' (baseline)'], [solver ' + Screening']};
     % Screening (oracle dual)
     if oracle_dual
         set(gca,'ColorOrderIndex',1)    
         semilogy(outPGD_screenOracle.timeIt,outPGD_screenOracle.gapIt,'-.'),
-        legend_arr{end+1} = 'Prox. Grad + Screening ($\theta^\star$)';
+        legend_arr{end+1} = [solver ' + Screening ($\theta^\star$)'];
     end
     % Settings
     ylabel('Duality gap'), xlabel('Time [s]'), grid on

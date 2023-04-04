@@ -27,8 +27,8 @@ screen_period = 10;
 MM = false; CoD = true; ActiveSet = false;
 
 % Noise (type and level)
-noise_type = 'none'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
-noise_val = 10; % snr or noise standard deviation
+noise_type = 'gaussian_std'; % Options: 'poisson', 'gaussian_std', 'gaussian_snr', otherwise: no noise.
+noise_val = 1; % snr or noise standard deviation
 
 % Generate data
 [A,y,n,options.tdual] = genData(m,n,density_x,exp_type,noise_type,noise_val);
