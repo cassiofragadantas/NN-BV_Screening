@@ -36,8 +36,7 @@ Files concerning this part:
 - `nnGapSafeScreen.m` implements screening for the non-negative least-squares (BVLS) problem.
 
 ### 2. Solvers
-Files concerning this part:
-- [TO COMPLETE]
+Different solvers used in the experiments along with their variants with screening.
 
 ### 3. Experiments
 Files concerning this part:
@@ -47,6 +46,5 @@ Files concerning this part:
 - `Exp_NN_DualDirection.m`: experiments with different dual directions. Used to generate Figure 2 in the paper. The different directions need to be uncommented from the code (around line 40)
 
 ### 4. General utils
-Files concerning this part:
-- [TO COMPLETE]
+Miscelaneous functions such as data generation, loading and preprocessing.
 
